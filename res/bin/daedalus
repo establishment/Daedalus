@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#set -x
+
+. /etc/profile
+. /etc/bash.bashrc
+. ~/.bash_profile
+. ~/.bash_login
+. ~/.profile
+
+WORKING_DIRECTORY=$(pwd)
+
+cd $DAEDALUS_ROOT
+mkdir -p /var/log/daedalus
+env DAEDALUS_WORKING_DIRECTORY=${WORKING_DIRECTORY} python3 source/daedalus.py "$@" 2>&1 # | tee -a /var/log/daedalus/console.log

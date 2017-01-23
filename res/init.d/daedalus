@@ -1,0 +1,17 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          daedalus
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: daedalus
+# Description:       daedalus server wizzard startup
+### END INIT INFO
+if [[ $1 = "start" ]]; then
+    sudo daedalus startup
+elif [[ $1 == "stop" ]]; then
+    sudo daedalus shutdown
+else
+    echo "Invalid command! "$1
+fi
