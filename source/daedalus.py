@@ -313,6 +313,15 @@ elif len(sys.argv) >= 5:
         args.pop(0)
         args.pop(0)
         module_exec(name, script, params=args)
+    elif sys.argv[1] == "run":
+        ensure_engine()
+        valid_command = True
+        script = sys.argv[2]
+        args = sys.argv.copy()
+        args.pop(0)
+        args.pop(0)
+        args.pop(0)
+        engine.run_command(script, params=args)
 
 if not valid_command:
     print("Invalid command! Run daedalus help for more info!")

@@ -214,10 +214,14 @@ class MetaEngine:
     def get_full_dependencies(self, module_name):
         return self.dependencies_graph.topo_sort(module_name)
 
-    def run_command(self, command):
+    def run_command(self, command, params=None):
+        params_line = ""
+        if params:
+            for param in params:
+                params_line += " " + param
         final_command = "sudo -E " + self.root_dir + "/tools/bash/run_from_path.sh " + \
                         self.env["DAEDALUS_PROJECT_PATH"] + " " + self.env["DAEDALUS_CONFIG_PATH"] + "/scripts/" + \
-                        command
+                        command + params_line
         return run(final_command, env=self.env)
 
     def print_configfs_help(self):
