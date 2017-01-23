@@ -126,6 +126,16 @@ elif len(sys.argv) == 2:
     elif sys.argv[1] == "help":
         valid_command = True
         print_help()
+elif len(sys.argv) == 3:
+    if sys.argv[1] in ["deploy", "deploy-to", "install-on", "setup-machine"]:
+        valid_command = True
+        host_address = sys.argv[2]
+        subprocess.call("daedalus ssh link root " + host_address, shell=True)
+        subprocess.call("daedalus ssh deploy-to " + host_address + " " + DAEDALUS_ROOT + "/res/setup_new_machine.sh",
+                        shell=True)
+
+if valid_command:
+    exit(0)
 
 
 def check_plugin_return_code(return_code, plugin_name):
