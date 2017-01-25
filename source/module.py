@@ -239,6 +239,8 @@ class Module:
         params = None
         if "params" in script_data:
             params = script_data["params"]
+            if not isinstance(params, list):
+                params = [params]
 
         dependencies = None
         if "dependencies" in script_data:
