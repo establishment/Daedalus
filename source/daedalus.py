@@ -126,6 +126,9 @@ elif len(sys.argv) == 2:
     elif sys.argv[1] == "help":
         valid_command = True
         print_help()
+    elif sys.argv[1] == "upgrade":
+        valid_command = True
+        subprocess.call(DAEDALUS_ROOT + "/res/upgrade.sh")
 elif len(sys.argv) == 3:
     if sys.argv[1] in ["deploy", "deploy-to", "install-on", "setup-machine"]:
         valid_command = True
