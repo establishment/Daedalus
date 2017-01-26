@@ -232,6 +232,7 @@ if len(sys.argv) == 2:
     if sys.argv[1] == "startup":
         ensure_engine()
         valid_command = True
+        plugins.autossh.AutoSSHManager.load_current_context()
         engine.startup()
     elif sys.argv[1] == "shutdown":
         ensure_engine()
