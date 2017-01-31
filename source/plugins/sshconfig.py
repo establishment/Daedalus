@@ -28,7 +28,7 @@ def parse_command(args):
             sshconfig.load()
             sshconfig.display()
     elif len(args) == 3:
-        if args[1] == ["add-host", "insert-host"]:
+        if args[1] in ["add-host", "insert-host"]:
             valid_command = True
             sshconfig = SSHConfigManager()
             sshconfig.load()
@@ -75,7 +75,7 @@ def parse_command(args):
             sshconfig.add(args[2], args[3])
             sshconfig.save()
     elif len(args) == 5:
-        if args[1] == ["add-host-field", "insert-host-field"]:
+        if args[1] in ["add-host-field", "insert-host-field"]:
             valid_command = True
             sshconfig = SSHConfigManager()
             sshconfig.load()
