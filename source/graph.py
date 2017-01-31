@@ -105,17 +105,12 @@ class Graph:
         return []
 
     def _dfs_topo_sort(self, node_id):
-        queue = []
-        queue.insert(0, node_id)
         self.visited[node_id] = 1
-        while queue:
-            node_id = queue.pop()
-            self.dfs_current_path.append(self.id_to_name[node_id])
-            if node_id in self.inv_adj_list:
-                for neighbour_node_id in self.inv_adj_list[node_id]:
-                    if neighbour_node_id not in self.visited:
-                        self.visited[neighbour_node_id] = 1
-                        queue.insert(0, neighbour_node_id)
+        if node_id in self.inv_adj_list:
+            for neighbour_node_id in self.inv_adj_list[node_id]:
+                if neighbour_node_id not in self.visited:
+                    self._dfs_topo_sort(neighbour_node_id)
+        self.dfs_current_path.append(self.id_to_name[node_id])
 
     def topo_sort(self, node):
         node_id = self.get_node_id(node)
@@ -124,6 +119,7 @@ class Graph:
         self.visited = {}
         self.dfs_current_path = []
         self._dfs_topo_sort(node_id)
+        self.dfs_current_path.reverse()
         return self.dfs_current_path
 
     def topo_sort_all(self):
