@@ -16,7 +16,7 @@ import config
 from util import renew_env_var, apt_get, apt_update, ensure_json_exists
 from meta_engine import MetaEngine
 
-CURRENT_DAEDALUS_VERSION = "0.2.0"
+CURRENT_DAEDALUS_VERSION = "0.2.1"
 
 KEY_DAEDALUS_VERSION = "DAEDALUS_VERSION"
 KEY_DAEDALUS_ROOT = "DAEDALUS_ROOT"
@@ -79,8 +79,7 @@ def load_env():
     if DAEDALUS_VERSION != CURRENT_DAEDALUS_VERSION:
         print("Latest version of daedalus is " + CURRENT_DAEDALUS_VERSION)
         print("Your current configuration is using older version " + DAEDALUS_VERSION)
-        print("Please run 'daedalus install' to update!")
-        exit(2)
+        install_daedalus()
 
     global DAEDALUS_ROOT
     DAEDALUS_ROOT = os.environ.get(KEY_DAEDALUS_ROOT)
