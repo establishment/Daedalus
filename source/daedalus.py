@@ -206,7 +206,6 @@ def module_exec(name, command, params=None):
     module = get_module_or_exit(name)
     if module.is_recursive(command):
         dependencies = engine.get_full_dependencies(name)
-        dependencies.reverse()
         for dependence_name in dependencies:
             get_module_or_exit(dependence_name).run(command, params=params)
     else:

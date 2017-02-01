@@ -119,7 +119,6 @@ class Graph:
         self.visited = {}
         self.dfs_current_path = []
         self._dfs_topo_sort(node_id)
-        self.dfs_current_path.reverse()
         return self.dfs_current_path
 
     def topo_sort_all(self):
@@ -129,6 +128,5 @@ class Graph:
             if node_id not in self.visited:
                 self.dfs_current_path = []
                 self._dfs_topo_sort(node_id)
-                self.dfs_current_path.reverse()
                 result.extend(self.dfs_current_path)
         return result
