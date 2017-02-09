@@ -33,7 +33,7 @@ class FileLock(object):
                 self.is_locked = True
                 os.write(self.fd, str.encode(self.session_uid))
             except OSError as e:
-                if e.errno != errno.EEXIST:
+                if e.errno == errno.EEXIST:
                     with open(self.lockfile, "r") as f:
                         current_session_uid = f.read()
                         if current_session_uid == self.session_uid:
@@ -62,10 +62,9 @@ class FileLock(object):
         return False
 
     def release(self, force=False):
-        if self.is_locked:
+        if self.got_ownership():
             os.close(self.fd)
-            if self.got_ownership():
-                os.unlink(self.lockfile)
+            os.unlink(self.lockfile)
         elif force:
             os.unlink(self.lockfile)
         self.is_locked = False
