@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import json
+import atexit
 from time import gmtime, strftime
 
 import plugins.autossh
@@ -13,13 +14,15 @@ import plugins.sshconfig
 import plugins.apply
 import plugins.template
 import config
-from util import renew_env_var, apt_get, apt_update, ensure_json_exists
+import filelock
+from util import renew_env_var, apt_get, apt_update, id_generator
 from meta_engine import MetaEngine
 
 CURRENT_DAEDALUS_VERSION = "0.2.1"
 
 KEY_DAEDALUS_VERSION = "DAEDALUS_VERSION"
 KEY_DAEDALUS_ROOT = "DAEDALUS_ROOT"
+KEY_DAEDALUS_FILE_LOCK_SESSION_UID = "DAEDALUS_FILE_LOCK_SESSION_UID"
 
 DAEDALUS_ROOT = None
 DAEDALUS_VERSION = None
@@ -29,7 +32,58 @@ command = ""
 for arg in sys.argv:
     command += arg
     command += " "
-print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " executing command: " + command)
+print(strftime("[%Y-%m-%d %H:%M:%S]", gmtime()) + " executing command: " + command)
+
+flock = None
+session_uid = None
+
+
+def exit_handler():
+    global flock
+    flock.release()
+
+
+def start_session():
+    global session_uid
+    session_uid = os.environ.get(KEY_DAEDALUS_FILE_LOCK_SESSION_UID)
+    if session_uid is None:
+        session_uid = id_generator(32)
+        os.environ[KEY_DAEDALUS_FILE_LOCK_SESSION_UID] = session_uid
+
+    filelock_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "state/file-lock/")
+    filelock.FileLock.set_filelock_dir(filelock_dir)
+    os.makedirs(filelock_dir, exist_ok=True)
+
+
+def single_session():
+    global flock
+
+    flock = filelock.FileLock("daedalus", session_uid=session_uid, timeout=10)
+    try:
+        flock.acquire()
+    except filelock.FileLockException:
+        print("Could not acquire file lock (timeout=10s).")
+        print("You can forcefully clear the lock with: daedalus clean-file-lock")
+        print("Do not abuse this command as it may brick other currently running sessions on this machine!")
+        exit(2)
+
+    atexit.register(exit_handler)
+
+
+def clean_running_session():
+    global flock
+    flock = filelock.FileLock("daedalus", session_uid=session_uid, timeout=10)
+    flock.release(force=True)
+
+start_session()
+
+if len(sys.argv) == 2:
+    if sys.argv[1] in ["clean-file-lock", "del-file-lock", "delete-file-lock", "clean-flock", "del-flock",
+                       "delete-flock"]:
+        clean_running_session()
+        exit(0)
+
+single_session()
 
 
 def install_daedalus():
