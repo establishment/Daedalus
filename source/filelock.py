@@ -43,11 +43,15 @@ class FileLock(object):
 
     def acquire(self):
         start_time = time.time()
+        message_printed = False
         while True:
             if self.trylock():
                 break
             if (time.time() - start_time) >= self.timeout:
                 raise FileLockException("Timeout occurred.")
+            if not message_printed:
+                message_printed = True
+                print("Trying to acquiring file lock " + self.file_name + " for " + str(self.timeout) + " seconds ...")
             time.sleep(self.delay)
 
     def got_ownership(self):
