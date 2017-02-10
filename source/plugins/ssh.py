@@ -6,7 +6,7 @@ import tempfile
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import load_json, save_json, get_password, ensure_password, id_generator, run
+from util import load_json, save_json, ensure_password, id_generator, run
 
 
 def print_help():

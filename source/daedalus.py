@@ -154,13 +154,15 @@ else:
 
 
 def get_metadata():
+    plugins.autossh.AutoSSHManager.load_current_context()
     metadata = {
         "daedalus": None,
         "autossh": plugins.autossh.AutoSSHManager.get_metadata(),
-        "hosts": plugins.hosts.HostsManager.get_metadata()
+        "hosts": plugins.hosts.HostsManager.get_metadata(),
+        "sshconfig": plugins.sshconfig.SSHConfigManager.get_metadata(),
     }
-    if engine:
-        metadata["daedalus"] = engine.get_metadata()
+    #if engine:
+    #    metadata["daedalus"] = engine.get_metadata()
     return metadata
 
 
@@ -173,10 +175,7 @@ if len(sys.argv) == 1:
     print("Daedalus is here!")
     valid_command = True
 elif len(sys.argv) == 2:
-    if sys.argv[1] == "get-metadata":
-        valid_command = True
-        print(json.dumps(get_metadata()))
-    elif sys.argv[1] == "help":
+    if sys.argv[1] == "help":
         valid_command = True
         print_help()
     elif sys.argv[1] == "upgrade":
@@ -281,7 +280,10 @@ if len(sys.argv) >= 2 and sys.argv[1] in ["cfs", "configfs"]:
         exit(2)
 
 if len(sys.argv) == 2:
-    if sys.argv[1] == "startup":
+    if sys.argv[1] == "get-metadata":
+        valid_command = True
+        print(json.dumps(get_metadata()))
+    elif sys.argv[1] == "startup":
         ensure_engine()
         valid_command = True
         plugins.autossh.AutoSSHManager.load_current_context()
