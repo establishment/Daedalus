@@ -6,7 +6,7 @@ import tempfile
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import load_json, save_json, ensure_password, id_generator, run
+from util import load_json, save_json, ensure_password, id_generator, run, get_files_in
 
 
 def print_help():
@@ -67,7 +67,7 @@ def parse_command(args):
 
 
 class SSHManager:
-    default_path = None
+    default_path = "/root/.ssh"
 
     def __init__(self):
         self.entries = []
@@ -88,6 +88,16 @@ class SSHManager:
             "entries": self.entries
         }
         save_json(path, data)
+
+    @classmethod
+    def get_metadata(cls):
+        metadata = {"publicKeys": {}}
+        files = get_files_in(cls.default_path)
+        for file_name in files:
+            if file_name.endswith(".pub"):
+                with open(os.path.join(cls.default_path, file_name), "r") as key_file:
+                    metadata["publicKeys"][file_name[:-4]] = key_file.read()
+        return metadata
 
     @classmethod
     def ssh_keyscan(cls, host):

@@ -160,6 +160,7 @@ def get_metadata():
         "autossh": plugins.autossh.AutoSSHManager.get_metadata(),
         "hosts": plugins.hosts.HostsManager.get_metadata(),
         "sshconfig": plugins.sshconfig.SSHConfigManager.get_metadata(),
+        "ssh": plugins.ssh.SSHManager.get_metadata()
     }
     #if engine:
     #    metadata["daedalus"] = engine.get_metadata()
