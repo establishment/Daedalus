@@ -15,7 +15,7 @@ import plugins.apply
 import plugins.template
 import config
 import filelock
-from util import renew_env_var, apt_get, apt_update, id_generator
+from util import renew_env_var, apt_get, apt_update, id_generator, print_help_line
 from meta_engine import MetaEngine
 
 CURRENT_DAEDALUS_VERSION = "0.2.1"
@@ -162,18 +162,61 @@ def get_metadata():
         "sshconfig": plugins.sshconfig.SSHConfigManager.get_metadata(),
         "ssh": plugins.ssh.SSHManager.get_metadata()
     }
-    #if engine:
-    #    metadata["daedalus"] = engine.get_metadata()
+    if engine:
+        metadata["daedalus"] = engine.get_metadata()
     return metadata
 
 
 def print_help():
-    print("Daedalus help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus is a collection of tools and scripts with the purpose of making deploying and " +
+                    "sysadmin jobs easier while still having control and power of bash!")
+    print("")
+    print_help_line(1, "Generic commands:")
+    print_help_line(2, "help", "print this description")
+    print_help_line(2, "{clean-file-lock, del-file-lock, delete-file-lock, clean-flock, del-flock, delete-flock}",
+                    "remove the current file lock. Use only in case of emergency")
+    print_help_line(2, "upgrade", "update Daedalus to the latest version (may broke backwards compatibility)")
+    print_help_line(2, "{deploy, deploy-to, install-on, setup-machine} <host_address>",
+                    "install Daedalus on a remote machine")
+    print_help_line(2, "get-metadata", "print to stdout a JSON containing various metadata from all plugins")
+    print_help_line(2, "project", "submodule: add, remove and manage Daedalus projects")
+    print_help_line(2, "startup", "trigger what happens at system booting")
+    print_help_line(2, "shutdown", "trigger what happens att system shutdown")
+    print("")
+    print_help_line(1, "Project commands (requires an active working project):")
+    print_help_line(2, "{cfs, configfs}", "submodule: access Daedalus' config file system for current project")
+    print_help_line(2, "list-modules", "print all defined modules for current project")
+    print_help_line(2, "list-installed-modules", "print all installed modules for current project")
+    print_help_line(2, "info", "print a nice table about current project defined and installed modules")
+    print_help_line(2, "update", "bulk update command")
+    print_help_line(2, "update-version", "bulk update with reinstall forced (or purge and install)")
+    print_help_line(2, "start", "bulk start installed modules")
+    print_help_line(2, "stop", "bulk stop installed modules")
+    print_help_line(2, "sync-stop", "bulk sync-stop installed modules")
+    print_help_line(2, "restart", "bulk restart installed modules")
+    print_help_line(2, "force-restart", "bulk force-restart installed modules")
+    print_help_line(2, "info <module>", "prints information about module (if it is defined)")
+    print_help_line(2, "list-dependencies <module>", "prints a list of dependencies for module")
+    print_help_line(2, "{install, purge, reinstall, update, start, stop, restart, startup} <module>",
+                    "executes one of these commands on module")
+    print_help_line(2, "run <command> [arg1, arg2, ...]",
+                    "runs a script/command in Daedalus environment (passing arguments after the command)")
+    print_help_line(2, "exec <module> <command> [arg1, arg2, ...]",
+                    "executes module-defined command (passing arguments after the command)")
+    print("")
+    print_help_line(1, "Plugins (run <plugin> help for details):")
+    print_help_line(2, "hosts", "easy way to edit and apply changes to /etc/hosts file")
+    print_help_line(2, "autossh", "manager for autossh connections")
+    print_help_line(2, "https", "wrapper over letsencrypt SSL certificate creation and renewal")
+    print_help_line(2, "ssh", "wrapper over ssh")
+    print_help_line(2, "nginx", "manager for nginx configuration. Implements nginx-modules")
+    print_help_line(2, "{sshconfig, sshconf}", "easy way to edit and apply changes to ssh config files")
+    print_help_line(2, "apply", "collection for various system-wide parameter tweaking setup")
+    print_help_line(2, "{template, jinja2}", "easy environment for jinja2 template files rendering")
 
 valid_command = False
 if len(sys.argv) == 1:
-    print("Daedalus is here!")
+    print("Daedalus is here! (" + str(DAEDALUS_VERSION) + ")")
     valid_command = True
 elif len(sys.argv) == 2:
     if sys.argv[1] == "help":

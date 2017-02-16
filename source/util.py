@@ -9,7 +9,7 @@ import random
 
 def renew_env_var(key, value):
     # Take care, as this function will not change environment variables for parents (aka. bash).
-    # In order for the terminal to recognize the new environment you need to restart bash.
+    # In order for the terminal to recognize the new environment you need to restart your current session.
     key = str(key)
     value = str(value)
     subprocess.call("sed -i '/export " + key + "=.*/d' /etc/profile > /dev/null 2>&1", shell=True)
@@ -113,7 +113,7 @@ def ensure_password(text):
 
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+    return "".join(random.choice(chars) for _ in range(size))
 
 
 def run(command, env=None, overwrite_env=False, shell=True):
@@ -133,3 +133,11 @@ def get_real_path(path):
     if path.startswith("/"):
         return path
     return os.environ.get("DAEDALUS_WORKING_DIRECTORY") + "/" + path
+
+
+def print_help_line(nest_level, col1, col2=None, col1_size=30, col_separator=" - "):
+    if col2 is not None:
+        col2 = col_separator + col2
+    else:
+        col2 = ""
+    print(get_spaces(nest_level * 2) + col1 + get_spaces(col1_size - len(col1)) + col2)
