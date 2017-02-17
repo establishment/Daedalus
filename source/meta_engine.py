@@ -2,7 +2,7 @@ import os
 
 import config
 import plugins.autossh
-from util import get_dirs_in, get_files_in, load_json, ensure_password, format_two_column, run
+from util import get_dirs_in, get_files_in, ensure_password, format_two_column, run, print_help_line
 from module import Module
 from configfs import ConfigFS
 from graph import Graph
@@ -224,14 +224,40 @@ class MetaEngine:
                         command + params_line
         return run(final_command, env=self.env)
 
-    def print_configfs_help(self):
-        print("ConfigFS: Nothing for now!")
+    @staticmethod
+    def print_configfs_help():
+        print_help_line(0, "Daedalus Config File System submodule:")
+        print_help_line(1, "help", "prints this description")
+        print_help_line(1, "show-all",
+                        "prints everything stored in the current configfs session (including internal data)")
+        print_help_line(1, "show-config", "prints every user-defined settings stored in the current configfs session")
+        print_help_line(1, "delete-all", "delete all settings stored (including internal data)")
+        print_help_line(1, "delete-config", "delete all user-defined settings")
+        print_help_line(1, "delete <key>", "delete the key-value pair associated with key")
+        print_help_line(1, "delete-list <list_key>", "delete the key-list pair associated with key")
+        print_help_line(1, "exists <key>", "check if there is a key-value pair associated with key")
+        print_help_line(1, "exists-list <list_key>", "check if there is a key-list pair associated with key")
+        print_help_line(1, "{request-pw, request-private, request-hidden} <key>",
+                        "request hidden user input from console the set key with private data")
+        print_help_line(1, "show <key>", "prints the value associated with key")
+        print_help_line(1, "show-list <list_key>", "prints the list associated with key")
+        print_help_line(1, "set <key> <value>", "sets the pair key-value")
+        print_help_line(1, "set-list <list_key> <value>", "sets delete the current list with key list_key and sets " +
+                        "it to a new list containing only value as a single element")
+        print_help_line(1, "contains <list_key> <value>",
+                        "prints yes or no if list_key contains or not an element with value")
+        print_help_line(1, "remove <list_key> <value>",
+                        "remove the element value from the list associated with the key")
+        print_help_line(1, "insert <list_key> <value>",
+                        "insert a new element value in list associated with the key")
+        print_help_line(0, "Every command accepting <key> as argument will switch to the list counter-part command " +
+                        "when the key starts with the prefix \"list:\"")
 
     def parse_configfs_command(self, args):
         valid_command = False
         if len(args) == 1:
             valid_command = True
-            self.print_configfs_help()
+            MetaEngine.print_configfs_help()
         elif len(args) == 2:
             if args[1] == "help":
                 valid_command = True
