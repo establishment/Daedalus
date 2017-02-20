@@ -4,12 +4,18 @@ import os
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import get_files_in, format_two_column
+from util import get_files_in, format_two_column, print_help_line
 
 
 def print_help():
-    print("Daedalus \"Nginx\" plugin help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus \"Nginx\" plugin help:")
+    print_help_line(1, "help", "prints this description")
+    print_help_line(1, "list", "prints currently enabled sites and if it supports or not Daedalus' nginx-modules")
+    print_help_line(1, "{list-extensions, list-ext} <domain>", "prints installed extensions for the specified domain")
+    print_help_line(1, "{link, link-ext, link-extension, link-ext-to, link-extension-to} <domain> <extension>",
+                    "installs (link) domain with the specified extension")
+    print_help_line(1, "{unlink, unlink-ext, unlink-extension, unlink-ext-from, unlink-extension-from} <domain> " +
+                    "<extension>", "uninstalls (unlink) domain from the specified extension")
 
 
 def parse_command(args):

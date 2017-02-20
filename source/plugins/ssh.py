@@ -6,12 +6,23 @@ import tempfile
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import load_json, save_json, ensure_password, id_generator, run, get_files_in
+from util import load_json, save_json, ensure_password, id_generator, run, get_files_in, print_help_line
 
 
 def print_help():
-    print("Daedalus \"ssh\" plugin help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus \"ssh\" plugin help:")
+    print_help_line(1, "help", "prints this description")
+    print_help_line(1, "{keyadd, addkey, add} <key_name>", "add the specified ssh key to the ssh-agent")
+    print_help_line(1, "{keyscan, scan} <host>", "scan the specified host and adds it to known_hosts")
+    print_help_line(1, "{keygen, gen} <key_name> [label]", "generate a new ssh key with he specified name " +
+                    "(also takes a label argument if needed)")
+    print_help_line(1, "link <user> <host> [key_name [password]]", "does a ssh copy-id to the specified user@host " +
+                    "for ssh key_name (by default id_rsa). By default the command requires the remote ssh password " +
+                    "but you can also pass it in plain text as an argument")
+    print_help_line(1, "run [user] <host> <script>", "runs local script on user@host (by default user is root)")
+    print_help_line(1, "scp <from> <to>", "use exactly as scp")
+    print_help_line(0, "It's recommended to use Daedalus for ssh only when you want to copy-id by default if not " +
+                    "currently present on the remote machine!")
 
 
 def parse_command(args):
