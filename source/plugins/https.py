@@ -1,9 +1,20 @@
 import subprocess
+import sys
+import os
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(1, parent_dir)
+
+from util import print_help_line
 
 
 def print_help():
-    print("Daedalus \"https\" plugin help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus \"https\" plugin help:")
+    print_help_line(1, "renew", "update all domains with new SSL keys/certificates")
+    print_help_line(1, "test <domain>", "run a HTTPS lightweight server for quickly testing certificates for the " +
+                    "specified domain")
+    print_help_line(1, "new-ssl <domain> <email>", "generate SSL certificates for the specified domain setting " +
+                    "<email> as the owner")
 
 
 def parse_command(args):

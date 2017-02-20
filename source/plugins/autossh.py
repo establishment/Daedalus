@@ -6,12 +6,22 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
 import config
-from util import load_json, save_json, ensure_json_exists
+from util import load_json, save_json, ensure_json_exists, print_help_line
 
 
 def print_help():
-    print("Daedalus \"autossh\" plugin help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus \"autossh\" plugin help:")
+    print_help_line(1, "help", "prints this description")
+    print_help_line(1, "show", "prints current configured state")
+    print_help_line(1, "apply", "apply the current state opening the ssh tunnels (old tunnels are unaffected)")
+    print_help_line(1, "apply {--overwrite, --force}", "apply the current forcing old tunnels to be closed")
+    print_help_line(1, "clear-tunnels", "kill all currently active ssh tunnels")
+    print_help_line(1, "delete-port <port>", "remove all entries tunneling in to the specified mapped port")
+    print_help_line(1, "delete-address <address>", "remove all entries tunneling in from the specified mapped address")
+    print_help_line(1, "delete <address> <port>", "remove the entry tunneling in from he specified mapped address" +
+                    "to the specified mapped port")
+    print_help_line(1, "add <mapped_port> <mapped_address> <remote_port> <remote_user> <remote_host>",
+                    "add a new entry with the specified parameters")
 
 
 def parse_command(args):

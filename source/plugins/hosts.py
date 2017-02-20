@@ -4,12 +4,18 @@ import os
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import run
+from util import print_help_line
 
 
 def print_help():
-    print("Daedalus \"hosts\" plugin help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus \"hosts\" plugin help:")
+    print_help_line(1, "help", "prints this description")
+    print_help_line(1, "show", "prints the current hosts configuration")
+    print_help_line(1, "show-alias <alias>", "prints the current configuration for the specified alias")
+    print_help_line(1, "show-up <ip>", "prints the current configuration for the specified ip")
+    print_help_line(1, "delete-alias <alias>", "delete the entry with the specified alias")
+    print_help_line(1, "delete-ip <ip>", "delete all entries with the specified ip")
+    print_help_line(1, "add <alias> <ip>", "add a new entry (or overwrite)")
 
 
 def parse_command(args):
@@ -49,9 +55,6 @@ def parse_command(args):
             hosts.load()
             hosts.delete_ip(args[2])
             hosts.save()
-        elif args[1] == "set-hostname":
-            valid_command = True
-            HostsManager.set_hostname(args[2])
     elif len(args) == 4:
         if args[1] == "add":
             valid_command = True
@@ -76,10 +79,6 @@ class HostsManager:
             "ip_to_aliases": hosts.ip_to_aliases
         }
         return data
-
-    @classmethod
-    def set_hostname(cls, hostname):
-        run(os.environ.get("DAEDALUS_ROOT") + "/tools/bash/set_hostname.sh " + hostname)
 
     def load(self, path="/etc/hosts"):
         with open(path) as file:

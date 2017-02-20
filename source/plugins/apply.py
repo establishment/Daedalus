@@ -4,12 +4,16 @@ import os
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import run
+from util import run, print_help_line
 
 
 def print_help():
-    print("Daedalus \"apply\" plugin help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus \"apply\" plugin help:")
+    print_help_line(1, "help", "print this description")
+    print_help_line(1, "sysctl <path/to/file>", "overwrites and apply sysctl settings from config file at path/to/file")
+    print_help_line(1, "{security-limits, securitylimits, sec-limits, sec-lims, security-lims}",
+                    "overwrites and apply security limits from config file at path/to/file")
+    print_help_line(1, "set-hostname", "change current machine hostname")
 
 
 def parse_command(args):
@@ -28,6 +32,9 @@ def parse_command(args):
         elif args[1] in ["security-limits", "securitylimits", "sec-limits", "sec-lims", "security-lims"]:
             valid_command = True
             ApplyManager.security_limits(args[2])
+        elif args[1] == "set-hostname":
+            valid_command = True
+            ApplyManager.set_hostname(args[2])
     return valid_command
 
 
@@ -41,3 +48,6 @@ class ApplyManager:
     def security_limits(cls, path):
         run("cp " + path + " /etc/security/limits.conf")
 
+    @classmethod
+    def set_hostname(cls, hostname):
+        run(os.environ.get("DAEDALUS_ROOT") + "/tools/bash/set_hostname.sh " + hostname)
