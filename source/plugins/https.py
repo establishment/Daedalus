@@ -10,6 +10,7 @@ from util import print_help_line
 
 def print_help():
     print_help_line(0, "Daedalus \"https\" plugin help:")
+    print_help_line(1, "help", "prints this description")
     print_help_line(1, "renew", "update all domains with new SSL keys/certificates")
     print_help_line(1, "test <domain>", "run a HTTPS lightweight server for quickly testing certificates for the " +
                     "specified domain")
@@ -23,7 +24,10 @@ def parse_command(args):
         valid_command = True
         print_help()
     elif len(args) == 2:
-        if args[1] == "renew":
+        if args[1] == "help":
+            valid_command = True
+            print_help()
+        elif args[1] == "renew":
             valid_command = True
             renew_ssl()
     elif len(args) == 3:
