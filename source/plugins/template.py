@@ -6,7 +6,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
 import config
-from util import load_json, save_json, ensure_json_exists, format_two_column, get_real_pathm, print_help_line
+from util import load_json, save_json, ensure_json_exists, format_two_column, get_real_path, print_help_line
 
 
 def print_help():
