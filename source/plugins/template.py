@@ -6,12 +6,19 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
 import config
-from util import load_json, save_json, ensure_json_exists, format_two_column, get_real_path
+from util import load_json, save_json, ensure_json_exists, format_two_column, get_real_pathm, print_help_line
 
 
 def print_help():
-    print("Daedalus \"template\" plugin help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus \"template\" plugin help:")
+    print_help_line(1, "help", "prints this description")
+    print_help_line(1, "{show, display}", "prints the current state")
+    print_help_line(1, "{clear, reset}", "clears the current state")
+    print_help_line(1, "{delete, remove} <key>", "delete the specified key from the state")
+    print_help_line(1, "{show, display} <key>", "prints the specified key")
+    print_help_line(1, "render <path/to/template>", "renders template using the current state")
+    print_help_line(1, "{set, add} <key> <value>", "add a new (or overwrite existing) key in the current state")
+    print_help_line(1, "render-to <path/to/template> <path/to/output>", "renders template using the current state")
 
 
 def parse_command(args):

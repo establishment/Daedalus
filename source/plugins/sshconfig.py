@@ -5,12 +5,25 @@ import sys
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import format_two_column, run
+from util import format_two_column, run, print_help_line
 
 
 def print_help():
-    print("Daedalus \"sshconfig\" plugin help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus \"sshconfig\" plugin help:")
+    print_help_line(1, "help", "prints this description")
+    print_help_line(1, "{show, display}", "prints the current sshconfig state")
+    print_help_line(1, "{add-host, insert-host} <host>", "add a new host entry")
+    print_help_line(1, "{remove-host, delete-host} <host>", "remove the specified host entry")
+    print_help_line(1, "{show, display} <global_option>", "prints the specified global option")
+    print_help_line(1, "{show-host, display-host} <host>", "prints the specified host entry")
+    print_help_line(1, "{remove, delete} <global_option>", "remove the specified global option")
+    print_help_line(1, "{remove-host-field, delete-host-field} <host> <field>",
+                    "remove an existing field from the specified host")
+    print_help_line(1, "{show-host-field, display-host-field} <host> <field>",
+                    "prints the specified field of host entry")
+    print_help_line(1, "{add, insert} <global_option> <value>", "add a new (or overwrites existing) global option")
+    print_help_line(1, "{add-host-field, insert-host-field} <host> <field> <value>",
+                    "add a new config field, value pair to the specified host")
 
 
 def parse_command(args):
