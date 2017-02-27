@@ -141,3 +141,12 @@ def print_help_line(nest_level, col1, col2=None, col1_size=30, col_separator=" -
     else:
         col2 = ""
     print(get_spaces(nest_level * 2) + col1 + get_spaces(col1_size - len(col1)) + col2)
+
+
+def escape_arg(arg):
+    temp_arg = ""
+    for c in arg:
+        if c == "\"":
+            temp_arg += "\\"
+        temp_arg += c
+    return "\"" + temp_arg + "\""
