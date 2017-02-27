@@ -288,7 +288,7 @@ class Module:
                              param + "\". Setting it to default value: " + default_value)
                     self.config_fs.set(param, default_value)
                 param_values += " "
-                param_values += param_value
+                param_values += "\"" + param_value + "\""
         if dependencies is not None:
             if not self.check_dependencies(dependencies):
                 self.log("Error: command \"" + script + "\" (" + file_name + ") depends on: " + str(dependencies))
