@@ -300,6 +300,7 @@ class Module:
         params = script_params
         if params is not None:
             for param in params:
+                command += " "
                 command += escape_arg(param)
 
         env = self.env
