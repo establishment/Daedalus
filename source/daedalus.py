@@ -351,11 +351,11 @@ if len(sys.argv) == 2:
     elif sys.argv[1] in ["stop", "sync-stop"]:
         ensure_engine()
         valid_command = True
-        engine.exec_reversed_on_all(sys.argv[1])
+        engine.exec_on_all(sys.argv[1])
     elif sys.argv[1] == "restart":
         ensure_engine()
         valid_command = True
-        engine.exec_reversed_on_all("sync-stop", filter_as=["restart"])
+        engine.exec_on_all("sync-stop", filter_as=["restart"])
         engine.exec_on_all("start", filter_as=["restart"])
     elif sys.argv[1] == "force-restart":
         ensure_engine()
