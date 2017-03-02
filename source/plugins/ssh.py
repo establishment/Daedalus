@@ -9,6 +9,9 @@ sys.path.insert(1, parent_dir)
 from util import load_json, save_json, ensure_password, id_generator, run, get_files_in, print_help_line
 
 
+# WARNING: Before trying to modify anything about how ssh run works, please read this question on StackOverflow:
+# http://stackoverflow.com/questions/32384148/why-does-running-a-background-task-over-ssh-fail-if-a-pseudo-tty-is-allocated
+
 def print_help():
     print_help_line(0, "Daedalus \"ssh\" plugin help:")
     print_help_line(1, "help", "prints this description")
@@ -112,7 +115,7 @@ class SSHManager:
 
     @classmethod
     def ssh_keyscan(cls, host):
-        run("ssh-keyscan rsa " + host + " > ~/.ssh/known_hosts")
+        run("ssh-keyscan -t rsa " + host + " > ~/.ssh/known_hosts")
 
     @classmethod
     def ssh_addkey(cls, name):
@@ -167,9 +170,9 @@ class SSHManager:
         host_script = "daedalus-deploy-script-" + id_generator() + ".sh"
         command = "scp " + script + " " + user + "@" + hostname + ":~/" + host_script
         subprocess.call(command, shell=True)
-        command = "ssh " + user + "@" + hostname + " bash ~/" + host_script
+        command = "ssh -t " + user + "@" + hostname + " \"set -m; bash ~/" + host_script + "\""
         subprocess.call(command, shell=True)
-        command = "ssh " + user + "@" + hostname + " rm ~/" + host_script
+        command = "ssh -t " + user + "@" + hostname + " \"set -m; rm ~/" + host_script + "\""
         subprocess.call(command, shell=True)
 
     @classmethod
@@ -184,9 +187,9 @@ class SSHManager:
         host_script = "daedalus-deploy-script-" + id_generator() + ".sh"
         command = "sshpass -f " + path + " scp " + script + " " + user + "@" + hostname + ":~/" + host_script
         subprocess.call(command, shell=True)
-        command = "sshpass -f " + path + " ssh " + user + "@" + hostname + " bash ~/" + host_script
+        command = "sshpass -f " + path + " ssh -t " + user + "@" + hostname + "\"set -m; bash ~/" + host_script + "\""
         subprocess.call(command, shell=True)
-        command = "sshpass -f " + path + " ssh " + user + "@" + hostname + " rm ~/" + host_script
+        command = "sshpass -f " + path + " ssh -t " + user + "@" + hostname + "\"set -m; rm ~/" + host_script + "\""
         subprocess.call(command, shell=True)
 
     @classmethod
@@ -207,7 +210,7 @@ class SSHManager:
 
     @classmethod
     def ssh_run_key(cls, user, hostname, command):
-        command = "ssh " + user + "@" + hostname + " \"" + command + "\""
+        command = "ssh -t " + user + "@" + hostname + " \"set -m; " + command + "\""
         subprocess.call(command, shell=True)
 
     @classmethod
@@ -219,7 +222,7 @@ class SSHManager:
         os.close(new_file)
         with open(path, "w") as file:
             file.write(password)
-        command = "sshpass -f " + path + " ssh " + user + "@" + hostname + " \"" + command + "\""
+        command = "sshpass -f " + path + " ssh -t " + user + "@" + hostname + " \"set -m; " + command + "\""
         subprocess.call(command, shell=True)
 
     @classmethod
