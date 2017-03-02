@@ -112,7 +112,7 @@ class SSHManager:
 
     @classmethod
     def ssh_keyscan(cls, host):
-        run("ssh-keyscan -t rsa " + host + " > ~/.ssh/known_hosts")
+        run("ssh-keyscan rsa " + host + " > ~/.ssh/known_hosts")
 
     @classmethod
     def ssh_addkey(cls, name):
@@ -167,9 +167,9 @@ class SSHManager:
         host_script = "daedalus-deploy-script-" + id_generator() + ".sh"
         command = "scp " + script + " " + user + "@" + hostname + ":~/" + host_script
         subprocess.call(command, shell=True)
-        command = "ssh -t " + user + "@" + hostname + " bash ~/" + host_script
+        command = "ssh " + user + "@" + hostname + " bash ~/" + host_script
         subprocess.call(command, shell=True)
-        command = "ssh -t " + user + "@" + hostname + " rm ~/" + host_script
+        command = "ssh " + user + "@" + hostname + " rm ~/" + host_script
         subprocess.call(command, shell=True)
 
     @classmethod
@@ -184,9 +184,9 @@ class SSHManager:
         host_script = "daedalus-deploy-script-" + id_generator() + ".sh"
         command = "sshpass -f " + path + " scp " + script + " " + user + "@" + hostname + ":~/" + host_script
         subprocess.call(command, shell=True)
-        command = "sshpass -f " + path + " ssh -t " + user + "@" + hostname + " bash ~/" + host_script
+        command = "sshpass -f " + path + " ssh " + user + "@" + hostname + " bash ~/" + host_script
         subprocess.call(command, shell=True)
-        command = "sshpass -f " + path + " ssh -t " + user + "@" + hostname + " rm ~/" + host_script
+        command = "sshpass -f " + path + " ssh " + user + "@" + hostname + " rm ~/" + host_script
         subprocess.call(command, shell=True)
 
     @classmethod
@@ -207,7 +207,7 @@ class SSHManager:
 
     @classmethod
     def ssh_run_key(cls, user, hostname, command):
-        command = "ssh -t " + user + "@" + hostname + " \"" + command + "\""
+        command = "ssh " + user + "@" + hostname + " \"" + command + "\""
         subprocess.call(command, shell=True)
 
     @classmethod
@@ -219,7 +219,7 @@ class SSHManager:
         os.close(new_file)
         with open(path, "w") as file:
             file.write(password)
-        command = "sshpass -f " + path + " ssh -t " + user + "@" + hostname + " \"" + command + "\""
+        command = "sshpass -f " + path + " ssh " + user + "@" + hostname + " \"" + command + "\""
         subprocess.call(command, shell=True)
 
     @classmethod
