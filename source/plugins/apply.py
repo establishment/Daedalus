@@ -30,7 +30,8 @@ def parse_command(args):
             print_help()
         elif args[1] == "git-submodule-hooks":
             valid_command = True
-            subprocess.call(os.environ.get("DAEDALUS_ROOT") + "/tools/git-submodule-hooks/install.sh", shell=True)
+            subprocess.call("cd " + os.environ.get("DAEDALUS_WORKING_DIRECTORY") + "; " +
+                            os.environ.get("DAEDALUS_ROOT") + "/tools/git-submodule-hooks/install.sh", shell=True)
     elif len(args) == 3:
         if args[1] == "sysctl":
             valid_command = True
