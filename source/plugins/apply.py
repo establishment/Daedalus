@@ -1,5 +1,6 @@
 import sys
 import os
+import subprocess
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
@@ -10,6 +11,8 @@ from util import run, print_help_line
 def print_help():
     print_help_line(0, "Daedalus \"apply\" plugin help:")
     print_help_line(1, "help", "print this description")
+    print_help_line(1, "git-submodule-hooks", "apply helper hooks for git submodule (tools/git-submodule-hooks) to " +
+                    "the current git from the working directory")
     print_help_line(1, "sysctl <path/to/file>", "overwrites and apply sysctl settings from config file at path/to/file")
     print_help_line(1, "{security-limits, securitylimits, sec-limits, sec-lims, security-lims}",
                     "overwrites and apply security limits from config file at path/to/file")
@@ -25,6 +28,9 @@ def parse_command(args):
         if args[1] == "help":
             valid_command = True
             print_help()
+        elif args[1] == "git-submodule-hooks":
+            valid_command = True
+            subprocess.call(os.environ.get("DAEDALUS_ROOT") + "/tools/git-submodule-hooks/install.sh", shell=True)
     elif len(args) == 3:
         if args[1] == "sysctl":
             valid_command = True
