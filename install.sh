@@ -2,6 +2,7 @@
 
 # you have to run this as: ". install.sh" or restart current shell session/reload bashrc file
 
+apt-get update
 apt-get install -y python3
 apt-get install -y python3-setuptools
 apt-get install -y python3-dev
