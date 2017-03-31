@@ -13,6 +13,7 @@ import plugins.ssh
 import plugins.sshconfig
 import plugins.apply
 import plugins.template
+import plugins.apt
 import config
 import filelock
 from util import renew_env_var, apt_get, apt_update, id_generator, print_help_line
@@ -244,27 +245,27 @@ def check_plugin_return_code(return_code, plugin_name):
     else:
         exit(0)
 
-if len(sys.argv) >= 2 and sys.argv[1] == "hosts":
+if len(sys.argv) >= 2 and sys.argv[1] in ["hosts"]:
     args = sys.argv.copy()
     args.pop(0)
     check_plugin_return_code(plugins.hosts.parse_command(args), sys.argv[1])
 
-if len(sys.argv) >= 2 and sys.argv[1] == "autossh":
+if len(sys.argv) >= 2 and sys.argv[1] in ["autossh"]:
     args = sys.argv.copy()
     args.pop(0)
     check_plugin_return_code(plugins.autossh.parse_command(args), sys.argv[1])
 
-if len(sys.argv) >= 2 and sys.argv[1] == "https":
+if len(sys.argv) >= 2 and sys.argv[1] in ["https"]:
     args = sys.argv.copy()
     args.pop(0)
     check_plugin_return_code(plugins.https.parse_command(args), sys.argv[1])
 
-if len(sys.argv) >= 2 and sys.argv[1] == "ssh":
+if len(sys.argv) >= 2 and sys.argv[1] in ["ssh"]:
     args = sys.argv.copy()
     args.pop(0)
     check_plugin_return_code(plugins.ssh.parse_command(args), sys.argv[1])
 
-if len(sys.argv) >= 2 and sys.argv[1] == "nginx":
+if len(sys.argv) >= 2 and sys.argv[1] in ["nginx"]:
     args = sys.argv.copy()
     args.pop(0)
     check_plugin_return_code(plugins.nginx.parse_command(args), sys.argv[1])
@@ -274,7 +275,7 @@ if len(sys.argv) >= 2 and sys.argv[1] in ["sshconfig", "sshconf"]:
     args.pop(0)
     check_plugin_return_code(plugins.sshconfig.parse_command(args), sys.argv[1])
 
-if len(sys.argv) >= 2 and sys.argv[1] == "apply":
+if len(sys.argv) >= 2 and sys.argv[1] in ["apply"]:
     args = sys.argv.copy()
     args.pop(0)
     check_plugin_return_code(plugins.apply.parse_command(args), sys.argv[1])
@@ -284,7 +285,12 @@ if len(sys.argv) >= 2 and sys.argv[1] in ["template", "jinja2"]:
     args.pop(0)
     check_plugin_return_code(plugins.template.parse_command(args), sys.argv[1])
 
-if len(sys.argv) >= 2 and sys.argv[1] == "project":
+if len(sys.argv) >= 2 and sys.argv[1] in ["apt"]:
+    args = sys.argv.copy()
+    args.pop(0)
+    check_plugin_return_code(plugins.apt.parse_command(args), sys.argv[1])
+
+if len(sys.argv) >= 2 and sys.argv[1] in ["project"]:
     args = sys.argv.copy()
     args.pop(0)
     check_plugin_return_code(config.project_parse_command(args), "project")
