@@ -1,12 +1,20 @@
 import os
 import subprocess
 
-from util import load_json, save_json
+from util import load_json, save_json, print_help_line
 
 
 def project_print_help():
-    print("Daedalus project manager help:")
-    print("\t\tNothing for now!")
+    print_help_line(0, "Daedalus project manager help:")
+    print_help_line(1, "help", "print this description")
+    print_help_line(1, "list", "prints all installed projects")
+    print_help_line(1, "current", "prints the current selected project")
+    print_help_line(1, "{root, path}", "prints the path to root of the current selected project")
+    print_help_line(1, "{switch, sw} <project>", "change the currently selected project")
+    print_help_line(1, "{root, path} <project>", "prints the path to root of the specified project")
+    print_help_line(1, "add <project>", "adds a new project with the specified name using the current directory as root")
+    print_help_line(1, "{delete, remove} <project>", "removes the specified project and all it's settings")
+    print_help_line(1, "add <project> <path/to/project>", "add a new project with the specified name and path to root")
 
 
 def project_parse_command(args):
