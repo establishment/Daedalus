@@ -260,7 +260,7 @@ elif len(sys.argv) == 2:
     elif sys.argv[1] == "upgrade":
         valid_command = True
         subprocess.call("git pull", shell=True)
-        NEW_DAEDALUS_VERSION = load_json("version.json")
+        NEW_DAEDALUS_VERSION_META = load_json("version.json")
         if NEW_DAEDALUS_VERSION_META["bump"] != DAEDALUS_VERSION_META["bump"]:
             print("New version detected! Going to reinstall!")
             subprocess.call(DAEDALUS_ROOT + "/install.sh", shell=True)
