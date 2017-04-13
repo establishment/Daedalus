@@ -8,6 +8,8 @@
 # Short-Description: daedalus
 # Description:       daedalus server wizzard startup
 ### END INIT INFO
+ulimit -Hn 1048576
+ulimit -Sn 1048576
 if [[ $1 = "start" ]]; then
     sudo daedalus startup
 elif [[ $1 == "stop" ]]; then

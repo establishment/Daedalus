@@ -8,7 +8,12 @@ from configfs import ConfigFS
 class Module:
     command_ignore_on_fail = ["startup", "shutdown", "start", "stop", "update"]
 
-    def __init__(self, name, root_dir, env=None):
+    def __init__(self, name, root_dir, env=None, custom_config_path=None,
+                custom_config_modules_dir=None, custom_config_module_dir=None,
+                namespace=None):
+        self.namespace = namespace
+        self.available_namespaces = []
+
         if env:
             self.env = env.copy()
         else:
@@ -16,12 +21,39 @@ class Module:
         self.root_dir = root_dir
         self.config_fs = ConfigFS(os.path.join(self.env["DAEDALUS_STATE_PATH"], "configfs"))
         self.name = name
-        self.config_modules_dir = self.env["DAEDALUS_CONFIG_MODULES_PATH"]
-        self.config_module_dir = os.path.join(self.config_modules_dir, name)
+
+        self.config_plugin_name = None
+        if "." in self.name:
+            self.config_plugin_name = self.name.split(".")[0]
+
+        if custom_config_path:
+            self.config_path = custom_config_path
+        else:
+            self.config_path = self.env["DAEDALUS_CONFIG_PATH"]
+
+        if custom_config_modules_dir:
+            self.config_modules_dir = custom_config_modules_dir
+        elif self.env["DAEDALUS_CONFIG_MODULES_PATH"]:
+            self.config_modules_dir = self.env["DAEDALUS_CONFIG_MODULES_PATH"]
+        else:
+            self.config_modules_dir = os.path.join(self.config_path, "modules")
+
+        if custom_config_module_dir:
+            self.config_module_dir = custom_config_module_dir
+        elif self.env["DAEDALUS_STATE_MODULE_PATH"]:
+            self.config_module_dir = self.env["DAEDALUS_STATE_MODULE_PATH"]
+        else:
+            self.config_module_dir = os.path.join(self.config_modules_dir, name)
+        
         self.state_module_dir = os.path.join(self.env["DAEDALUS_STATE_MODULES_PATH"], name)
+        
+        self.env["DAEDALUS_CONFIG_PLUGIN_NAME"] = self.config_plugin_name
+        self.env["DAEDALUS_CONFIG_PATH"] = self.config_path
+        self.env["DAEDALUS_CONFIG_MODULES_PATH"] = self.config_modules_dir
         self.env["DAEDALUS_CONFIG_MODULE_PATH"] = self.config_module_dir
         self.env["DAEDALUS_STATE_MODULE_PATH"] = self.state_module_dir
         self.env["DAEDALUS_MODULE_NAME"] = self.name
+        
         self.desc = None
 
         self.scripts = self.load_module_scripts()
@@ -70,10 +102,21 @@ class Module:
             return
 
         if "dependencies" in self.desc:
-            self.dependencies = self.desc["dependencies"]
+            self.dependencies = []
+            for dependency in self.desc["dependencies"]:
+                if "." in dependency:
+                    self.dependencies.append(dependency)
+                else:
+                    if self.config_plugin_name is not None:
+                        dependency = self.config_plugin_name + "." + dependency
+                    self.dependencies.append(dependency)
 
     def log(self, message):
-        print("<" + self.name + ">: " + message)
+        namespace_str = ""
+        if self.namespace:
+            namespace_str = "#" + self.namespace
+
+        print("<" + self.name + namespace_str + ">: " + message)
 
     def get_scripts(self):
         return self.scripts
@@ -135,7 +178,8 @@ class Module:
             return self.run("purge", internal=True)
         return 0
 
-    # TODO: error in state-modifying code is a bit tricky. No safeguards yet, so no need to treat reinstall carefully!
+    # TODO: error in state-modifying code is a bit tricky. 
+    # No safeguards yet, so no need to treat reinstall carefully!
     def reinstall(self, force=False):
         if force or self.is_outdated():
             self.run("purge")
@@ -165,17 +209,21 @@ class Module:
         return 0
 
     def info(self):
-        print("Raw module name: " + self.name)
+        print("Raw module name: " + self.desc["module"])
         if self.desc is None:
             print("Description file: No")
             return
         else:
             print("Description file: Yes")
-        print("Module alias: " + self.desc["module"])
+        print("Module alias: " + self.name)
         print("Latest version: " + self.desc["version"])
-        installed_version = self.config_fs.get(self.desc["module"] + "-version")
+        installed_version_key = self.name + "-version"
+        if "<this>" not in self.available_namespaces and self.available_namespaces:
+            installed_version_key += "#" + self.available_namespaces[0]
+        installed_version = self.config_fs.get(installed_version_key)
         if installed_version is not None:
             print("Installed version: " + installed_version)
+            print("Available namespaces: " + str(self.available_namespaces))
         else:
             print("Installed version: N/A")
 
@@ -186,6 +234,14 @@ class Module:
         if "isRecursive" not in script_data:
             return False
         return script_data["isRecursive"]
+
+    def is_install_script(self, script):
+        script_data = self.search_script_by_alias(script)
+        if script_data is None:
+            return False
+        if "isInstallScript" not in script_data:
+            return False
+        return script_data["isInstallScript"]
 
     @classmethod
     def run_error(cls):
@@ -221,10 +277,12 @@ class Module:
             elif script == "force-restart":
                 return self.force_restart()
             elif script in Module.command_ignore_on_fail:
-                self.log("Warning: \"" + script + "\" command is not defined for this module! Going to ignore!")
+                self.log("Warning: \"" + script + "\" command is not " + 
+                         "defined for this module! Going to ignore!")
                 return 0
             else:
-                self.log("Error: <" + self.name + "> does not contain any script with alias \"" + script + "\"")
+                self.log("Error: <" + self.name + namespace_str + "> does not contain " +
+                         "any script with alias \"" + script + "\"")
                 self.run_error()
 
         if script == "update":
@@ -250,21 +308,42 @@ class Module:
         if "isInstallScript" in script_data:
             is_install_script = script_data["isInstallScript"]
 
+        installed_version_key = self.name + "-version"
+        if self.namespace:
+            installed_version_key += "#" + self.namespace
+       
         if is_install_script:
-            installed_version = self.config_fs.get(self.desc["module"] + "-version")
+            installed_version = self.config_fs.get(installed_version_key)
             if installed_version is not None:
-                self.log("Module \"" + self.name + "\" is already installed! Installed version: " + installed_version)
+                if self.namespace:
+                    self.log("Module \"" + self.name + "\" is already " + 
+                             "available for namespace \"" + self.namespace + 
+                             "\"! Installed version: " + installed_version)
+                else:
+                    self.log("Module \"" + self.name + "\" is already installed! " + 
+                             "Installed version: " + installed_version)
                 if self.desc["version"] == installed_version:
                     self.log("You already have the latest version!")
                     # Everything is fine when we have the latest version so we should return 0
                     return 0
                 else:
-                    self.log("Latest version is: " + self.desc["version"] + " Run reinstall (or purge and install)!")
-                    # TODO: right now the flow would not be interrupted when older module version is installed.
+                    self.log("Latest version is: " + self.desc["version"] + 
+                             " Run reinstall (or purge and install)!")
+                    # TODO: right now the flow would not be interrupted when older 
+                    # module version is installed.
+                    
                     # Maybe prompt for user input?
                     return 0
             else:
-                os.makedirs(self.state_module_dir, exist_ok=True)
+                namespace_state_module_dir = self.state_module_dir
+                if self.namespace:
+                    namespace_state_module_dir += "#" + self.namespace
+                os.makedirs(namespace_state_module_dir, exist_ok=True)
+        else:
+            if self.namespace and self.namespace not in self.available_namespaces:
+                self.log("Error: <" + self.name + "> does not have namespace \"" + 
+                         self.namespace + "\" installed!")
+                exit(2)
 
         param_values = ""
         if params is not None:
@@ -277,21 +356,42 @@ class Module:
                     for index in range(2, len(tokens)):
                         default_value += ":"
                         default_value += tokens[index]
+                is_global = False
+                use_namespace = True
+                if ">" in param:
+                    tokens = param.split(">")
+                    param = tokens[1]
+                    selector = tokens[0].upper()
+                    if "G" in selector:
+                        is_global = True
+                    elif "L" in selector:
+                        is_global = False
+                    if "M" in selector:
+                        use_namespace = True
+                    if "S" in selector:
+                        use_namespace = False
+                if not is_global and self.config_plugin_name is not None:
+                    param = self.config_plugin_name + "." + param
+                if use_namespace and self.namespace is not None:
+                    if self.config_fs.exists(param + "#" + self.namespace):
+                        param += "#" + self.namespace
                 param_value = self.config_fs.get(param)
                 if param_value is None and default_value is None:
-                    self.log("Error: command \"" + script + "\" (" + file_name + ") requires configfs parameter \"" +
-                             param + "\"")
+                    self.log("Error: command \"" + script + "\" (" + file_name + 
+                             ") requires configfs parameter \"" + param + "\"")
                     self.run_error()
                 elif param_value is None and default_value is not None:
                     param_value = default_value
-                    self.log("Warning: command \"" + script + "\" (" + file_name + ") requires configfs parameter \"" +
+                    self.log("Warning: command \"" + script + "\" (" + file_name + 
+                             ") requires configfs parameter \"" +
                              param + "\". Setting it to default value: " + default_value)
                     self.config_fs.set(param, default_value)
                 param_values += " "
                 param_values += escape_arg(param_value)
         if dependencies is not None:
             if not self.check_dependencies(dependencies):
-                self.log("Error: command \"" + script + "\" (" + file_name + ") depends on: " + str(dependencies))
+                self.log("Error: command \"" + script + "\" (" + file_name + 
+                         ") depends on: " + str(dependencies))
                 self.run_error()
 
         command = "sudo -E " + self.root_dir + "/tools/bash/run_from_path.sh " + self.env["DAEDALUS_PROJECT_PATH"] + " "
@@ -305,10 +405,14 @@ class Module:
 
         env = self.env
         env["DAEDALUS_MODULE_COMMAND"] = script
+        namespace = self.namespace
+        if namespace is None:
+            namespace = ""
+        env["DAEDALUS_MODULE_NAMESPACE"] = namespace
         rc = run(command, env=env)
 
         if is_install_script:
-            self.config_fs.set(self.desc["module"] + "-version", self.desc["version"])
+            self.config_fs.set(installed_version_key, self.desc["version"])
             self.log("Installation complete!")
         else:
             self.log("Command \"" + script + "\" done!")

@@ -12,22 +12,22 @@ def renew_env_var(key, value):
     # In order for the terminal to recognize the new environment you need to restart your current session.
     key = str(key)
     value = str(value)
-    subprocess.call("sed -i '/export " + key + "=.*/d' /etc/profile > /dev/null 2>&1", shell=True)
-    subprocess.call("sed -i '/export " + key + "=.*/d' /etc/bash.bashrc > /dev/null 2>&1", shell=True)
-    subprocess.call("sed -i '/export " + key + "=.*/d' ~/.bash_profile > /dev/null 2>&1", shell=True)
-    subprocess.call("sed -i '/export " + key + "=.*/d' ~/.bash_login > /dev/null 2>&1", shell=True)
-    subprocess.call("sed -i '/export " + key + "=.*/d' ~/.profile > /dev/null 2>&1", shell=True)
+    run("sed -i '/export " + key + "=.*/d' /etc/profile > /dev/null 2>&1", shell=True)
+    run("sed -i '/export " + key + "=.*/d' /etc/bash.bashrc > /dev/null 2>&1", shell=True)
+    run("sed -i '/export " + key + "=.*/d' ~/.bash_profile > /dev/null 2>&1", shell=True)
+    run("sed -i '/export " + key + "=.*/d' ~/.bash_login > /dev/null 2>&1", shell=True)
+    run("sed -i '/export " + key + "=.*/d' ~/.profile > /dev/null 2>&1", shell=True)
     os.putenv(key, value)
     os.environ[key] = value
-    subprocess.call("echo \"export " + key + "=" + value + "\" >> /etc/profile", shell=True)
-    subprocess.call("echo \"export " + key + "=" + value + "\" >> /etc/bash.bashrc", shell=True)
-    subprocess.call("echo \"export " + key + "=" + value + "\" >> ~/.bash_profile", shell=True)
-    subprocess.call("echo \"export " + key + "=" + value + "\" >> ~/.bash_login", shell=True)
-    subprocess.call("echo \"export " + key + "=" + value + "\" >> ~/.profile", shell=True)
+    run("echo \"export " + key + "=" + value + "\" >> /etc/profile", shell=True)
+    run("echo \"export " + key + "=" + value + "\" >> /etc/bash.bashrc", shell=True)
+    run("echo \"export " + key + "=" + value + "\" >> ~/.bash_profile", shell=True)
+    run("echo \"export " + key + "=" + value + "\" >> ~/.bash_login", shell=True)
+    run("echo \"export " + key + "=" + value + "\" >> ~/.profile", shell=True)
 
 
 def apt_update():
-    return subprocess.call("apt-get update", shell=True)
+    return run("apt-get update", shell=True)
 
 
 def apt_get(app_name):
@@ -35,7 +35,7 @@ def apt_get(app_name):
         for name in app_name:
             apt_get(name)
     else:
-        subprocess.call("apt-get install -y " + app_name, shell=True)
+        run("apt-get install -y " + app_name, shell=True)
 
 
 def load_json(path):
@@ -116,17 +116,27 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return "".join(random.choice(chars) for _ in range(size))
 
 
+def sanitize_env(env):
+    for key in env:
+        if env[key] is None:
+            env[key] = ""
+    return env
+
+
 def run(command, env=None, overwrite_env=False, shell=True):
+    global current_process
     if overwrite_env:
         updated_env = env
     else:
         updated_env = os.environ.copy()
         if env:
             updated_env.update(env)
-
-    child = subprocess.Popen(command, env=updated_env, shell=shell)
-    child.wait()
-    return child.returncode
+    updated_env = sanitize_env(updated_env)
+    current_process = subprocess.Popen(command, env=updated_env, shell=shell, preexec_fn=os.setpgrp)
+    current_process.wait()
+    rc = current_process.returncode
+    current_process = None
+    return rc
 
 
 def get_real_path(path):
@@ -150,3 +160,4 @@ def escape_arg(arg):
             temp_arg += "\\"
         temp_arg += c
     return "\"" + temp_arg + "\""
+

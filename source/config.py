@@ -9,12 +9,18 @@ def project_print_help():
     print_help_line(1, "help", "print this description")
     print_help_line(1, "list", "prints all installed projects")
     print_help_line(1, "current", "prints the current selected project")
-    print_help_line(1, "{root, path}", "prints the path to root of the current selected project")
-    print_help_line(1, "{switch, sw} <project>", "change the currently selected project")
-    print_help_line(1, "{root, path} <project>", "prints the path to root of the specified project")
-    print_help_line(1, "add <project>", "adds a new project with the specified name using the current directory as root")
-    print_help_line(1, "{delete, remove} <project>", "removes the specified project and all it's settings")
-    print_help_line(1, "add <project> <path/to/project>", "add a new project with the specified name and path to root")
+    print_help_line(1, "{root, path}", "prints the path to root of the " + 
+                    "current selected project")
+    print_help_line(1, "{switch, sw} <project>", "change the currently " + 
+                    "selected project")
+    print_help_line(1, "{root, path} <project>", "prints the path to root " + 
+                    "of the specified project")
+    print_help_line(1, "add <project>", "adds a new project with the " + 
+                    "specified name using the current directory as root")
+    print_help_line(1, "{delete, remove} <project>", "removes the specified " +
+                    "project and all it's settings")
+    print_help_line(1, "add <project> <path/to/project>", "add a new " + 
+                    "project with the specified name and path to root")
 
 
 def project_parse_command(args):
@@ -155,10 +161,15 @@ class Manager:
             "DAEDALUS_PROJECT_PATH": project_root,
             "DAEDALUS_CONFIG_PATH": os.path.join(project_root, ".daedalus"),
             "DAEDALUS_CONFIG_MODULES_PATH": os.path.join(project_root, ".daedalus/modules"),
+            "DAEDALUS_GLOBAL_STATE_PATH": os.path.join(cls.root_path, "state"),
             "DAEDALUS_STATE_PATH": os.path.join(cls.root_path, "state/projects/" + project),
             "DAEDALUS_STATE_MODULES_PATH": os.path.join(cls.root_path, "state/projects/" + project + "/modules")
         }
         return env
+
+    @classmethod
+    def get_global_state_path(cls):
+        return os.path.join(cls.root_path, "state")
 
     @classmethod
     def get_state_path(cls, project=None):
@@ -170,3 +181,4 @@ class Manager:
     @classmethod
     def get_current_state_path(cls):
         return cls.get_state_path(cls.get_project())
+

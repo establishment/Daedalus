@@ -2,7 +2,7 @@ import os
 
 import config
 import plugins.autossh
-from util import get_dirs_in, get_files_in, ensure_password, format_two_column, run, print_help_line
+from util import load_json, ensure_json_exists, get_dirs_in, get_files_in, ensure_password, format_two_column, run, print_help_line
 from module import Module
 from configfs import ConfigFS
 from graph import Graph
@@ -20,6 +20,9 @@ class MetaEngine:
         self.configfs_path = os.path.join(self.project_state_path, "configfs")
         self.configfs = ConfigFS(self.configfs_path)
         self.dependencies_graph = Graph()
+
+        self.config_plugin_db = os.path.join(self.env["DAEDALUS_GLOBAL_STATE_PATH"], "config_plugins.json")
+        self.config_plugins = {}
 
         self.reload()
 
@@ -41,11 +44,7 @@ class MetaEngine:
 
     @staticmethod
     def filter_installed_modules(configfs_vars):
-        installed_modules = []
-        for var in configfs_vars:
-            if var.endswith("-version"):
-                installed_modules.append(var[:-len("-version")])
-        return installed_modules
+       return installed_modules
 
     def update_all(self, soft=True):
         if soft:
@@ -95,7 +94,12 @@ class MetaEngine:
 
     def exec_in_order(self, module_names, command):
         for module_name in module_names:
-            self.module(module_name).run(command)
+            module = self.module(module_name)
+            for namespace in module.available_namespaces:
+                module.namespace = namespace
+                if module.namespace == "<this>":
+                    module.namespace = None
+                module.run(command)
 
     def startup(self):
         autossh_on_boot = self.get_config_key("autossh-on-boot")
@@ -116,7 +120,6 @@ class MetaEngine:
 
     def shutdown(self):
         self.exec_reversed_on_all("stop")
-
         module_name_list = self.sorted_installed_modules()
         module_name_list.reverse()
         for module_name in module_name_list:
@@ -124,12 +127,66 @@ class MetaEngine:
 
     def load_module_list(self):
         config_path = self.env["DAEDALUS_CONFIG_MODULES_PATH"]
-        modules = get_dirs_in(config_path)
-        return self.filter_modules_by_name(modules)
+        modules = [name.lower() for name in get_dirs_in(config_path)]
+
+        ensure_json_exists(self.config_plugin_db)
+        config_plugins_data = load_json(self.config_plugin_db)
+        for config_plugin_name in config_plugins_data:
+            config_plugin_data = config_plugins_data[config_plugin_name]
+            if "path" not in config_plugin_data:
+                print("Warning: invalid config-plugin data. Entry \"" + config_plugin_name + 
+                      "\" does not contain field 'path'! Skipping ...")
+                continue
+            self.config_plugins[config_plugin_name] = config_plugin_data
+            modules_path = os.path.join(config_plugin_data["path"], "modules")
+            modules += [config_plugin_name + "." + name.lower() for name in get_dirs_in(modules_path)]
+        modules = self.filter_modules_by_name(modules)
+        return modules
+
+    def split_module_name(self, full_module_name):
+        tokens = full_module_name.split(".")
+        if len(tokens) == 1:
+            config_plugin_name = None
+            module_name = tokens[0].lower()
+        elif len(tokens) == 2:
+            config_plugin_name = tokens[0].lower()
+            module_name = tokens[1].lower()
+        else:
+            print("Error: Invalid full module name: " + full_module_name)
+            exit(1)
+        return config_plugin_name, module_name
+
+    def get_module_data(self, full_module_name):
+        config_plugin_name, module_name = self.split_module_name(full_module_name)
+        if config_plugin_name:
+            config_path = self.config_plugins[config_plugin_name]["path"]
+            config_modules_dir = os.path.join(config_path, "modules")
+            config_module_dir = os.path.join(config_modules_dir, module_name)
+        else:
+            config_path = self.env["DAEDALUS_CONFIG_PATH"]
+            config_modules_dir = self.env["DAEDALUS_CONFIG_MODULES_PATH"]
+            config_module_dir = os.path.join(config_modules_dir, module_name)
+        return config_path, config_modules_dir, config_module_dir
 
     def load_installed_modules(self):
         os.makedirs(self.configfs_path, exist_ok=True)
-        return self.filter_installed_modules(get_files_in(self.configfs_path))
+        configfs_vars = get_files_in(self.configfs_path)
+        installed_modules = []
+        for var in configfs_vars:
+            namespace = None
+            if "#" in var:
+                tokens = var.split("#")
+                var = tokens[0]
+                namespace = tokens[1]
+            if var.endswith("-version"):
+                module_name = var[:-len("-version")]
+                installed_modules.append(module_name)
+                if namespace:
+                    self.modules[module_name].available_namespaces.append(namespace)
+                else:
+                    self.modules[module_name].available_namespaces.append("<this>")
+        self.installed_modules = installed_modules
+        return installed_modules
 
     @classmethod
     def sort_modules(cls, modules, order):
@@ -160,20 +217,31 @@ class MetaEngine:
         return ordered_modules
 
     def sorted_installed_modules(self):
-        return MetaEngine.sort_modules(self.load_installed_modules(), self.dependencies_graph.topo_sort_all())
+        return MetaEngine.sort_modules(self.get_installed_modules(),
+                                       self.dependencies_graph.topo_sort_all())
 
     def sorted_by_command_priority_installed_modules(self, command):
-        return MetaEngine.sort_modules(self.load_installed_modules(), self.order_by_command_priority(command))
+        return MetaEngine.sort_modules(self.get_installed_modules(),
+                                       self.order_by_command_priority(command))
 
     def reload(self):
-        self.module_names = [name.lower() for name in self.load_module_list()]
+        self.module_names = self.load_module_list()
         for module_name in self.module_names:
-            self.modules[module_name] = Module(module_name, self.root_dir, self.env)
-            module_dependencies = self.modules[module_name].get_dependencies()
+            config_path, config_modules_dir, config_module_dir = self.get_module_data(module_name)
+            self.modules[module_name] = Module(module_name, self.root_dir, env=self.env,
+                                            custom_config_path=config_path,
+                                            custom_config_modules_dir=config_modules_dir,
+                                            custom_config_module_dir=config_module_dir)
+        
+        self.load_installed_modules()
+
+        for module_name in self.module_names:
             self.dependencies_graph.add_node(module_name)
+
+        for module_name in self.module_names:
+            module_dependencies = self.modules[module_name].get_dependencies()
             for module_dependence in module_dependencies:
                 self.dependencies_graph.add_edge(module_dependence, module_name)
-        self.installed_modules = [name.lower() for name in self.load_installed_modules()]
 
         for module_name in self.module_names:
             module_dependencies = self.modules[module_name].get_dependencies()
@@ -193,9 +261,15 @@ class MetaEngine:
         return self.module_names
 
     def module(self, name):
+        namespace = None
+        if "#" in name:
+            tokens = name.split("#")
+            name = tokens[0].lower()
+            namespace = tokens[1]
         name = name.lower()
         if name not in self.modules:
             return None
+        self.modules[name].namespace = namespace
         return self.modules[name]
 
     def get_installed_modules(self):
@@ -203,6 +277,8 @@ class MetaEngine:
 
     @staticmethod
     def is_internal_key(key):
+        if "#" in key:
+            key = key.split("#")[0]
         return key.endswith("-version") or key.endswith("-internal")
 
     def get_config_keys(self):
@@ -212,7 +288,12 @@ class MetaEngine:
         return self.configfs.get(key)
 
     def get_full_dependencies(self, module_name):
-        return self.dependencies_graph.topo_sort(module_name)
+        namespace = None
+        if "#" in module_name:
+            tokens = module_name.split("#")
+            module_name = tokens[0].lower()
+            namespace = tokens[1]
+        return self.dependencies_graph.topo_sort(module_name), namespace
 
     def run_command(self, command, params=None):
         params_line = ""
@@ -265,6 +346,7 @@ class MetaEngine:
             elif args[1] == "show-all":
                 valid_command = True
                 keys = self.configfs.get_all_keys()
+                keys.sort()
                 for key in keys:
                     value = self.configfs.get(key)
                     print(format_two_column(key, str(value), 80))
