@@ -132,7 +132,7 @@ def run(command, env=None, overwrite_env=False, shell=True):
         if env:
             updated_env.update(env)
     updated_env = sanitize_env(updated_env)
-    current_process = subprocess.Popen(command, env=updated_env, shell=shell, preexec_fn=os.setpgrp)
+    current_process = subprocess.Popen(command, env=updated_env, shell=shell)
     current_process.wait()
     rc = current_process.returncode
     current_process = None

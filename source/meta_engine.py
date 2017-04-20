@@ -180,6 +180,9 @@ class MetaEngine:
                 namespace = tokens[1]
             if var.endswith("-version"):
                 module_name = var[:-len("-version")]
+                if module_name not in self.modules:
+                    print("Error: there is no module named \"" + module_name + "\". Ignoring version file!")
+                    continue
                 installed_modules.append(module_name)
                 if namespace:
                     self.modules[module_name].available_namespaces.append(namespace)

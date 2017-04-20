@@ -405,10 +405,14 @@ class Module:
 
         env = self.env
         env["DAEDALUS_MODULE_COMMAND"] = script
-        namespace = self.namespace
-        if namespace is None:
-            namespace = ""
+        namespace = ""
+        namespace_suffix = ""
+        if self.namespace is not None:
+            namespace = self.namespace
+            namespace_suffix = "#" + self.namespace
         env["DAEDALUS_MODULE_NAMESPACE"] = namespace
+        env["DAEDALUS_FULL_STATE_MODULE_PATH"] = self.state_module_dir + namespace_suffix
+        env["DAEDALUS_FULL_MODULE_NAME"] = self.name + namespace_suffix
         rc = run(command, env=env)
 
         if is_install_script:
