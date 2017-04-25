@@ -49,11 +49,17 @@ def save_json(path, data):
 
 
 def get_dirs_in(path):
-    return [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    try:
+        return [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    except:
+        return []
 
 
 def get_files_in(path):
-    return [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+    try:
+        return [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+    except:
+        return []
 
 
 def repeat_str(st, count):
