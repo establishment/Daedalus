@@ -88,21 +88,23 @@ class ConfigPluginManager:
         cls.config_plugins_data = load_json(cls.config_plugins_path)
 
     @classmethod
-    def add(cls, name, path):
+    def add(cls, name, path, git_url=None):
         if name in cls.config_plugins_data:
             print("Error: there already exists a config plugin with name \"" + name + "\"")
             exit(2)
         cls.config_plugins_data[name] = {
             "path": path
         }
+        if git_url is not None:
+            cls.config_plugins_data[name]["gitUrl"] = git_url
 
     @classmethod
-    def add_from_path(cls, path):
+    def add_from_path(cls, path, git_url=None):
         if not os.path.isfile(path + "/description.json"):
             print("Error: there is no description.json file at the specified location!")
             exit(2)
         config_plugin_description = load_json(path + "/description.json")
-        cls.add(config_plugin_description["name"], path)
+        cls.add(config_plugin_description["name"], path, git_url=git_url)
 
     @classmethod
     def remove(cls, name):
@@ -156,7 +158,7 @@ class ConfigPluginManager:
         run("mkdir -p \"" + path + "\"")
         path_to_repo = path + "/" + cls.get_folder_name_from_git_url(git_url)
         run("cd \"" + path + "\"; git clone " + git_url + " " + path_to_repo)
-        cls.add_from_path(path_to_repo)
+        cls.add_from_path(path_to_repo, git_url=git_url)
 
     @classmethod
     def uninstall(cls, git_url):
