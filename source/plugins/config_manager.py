@@ -14,10 +14,10 @@ def print_help():
     print_help_line(1, "list", "displays all installed config plugins")
     print_help_line(1, "remove <plugin-name>", "removes the link to the specified plugin")
     print_help_line(1, "add <plugin-name> <path/to/plugin>", "register the specified path as the specified plugin name if it is not already registered")
-    print_help_line(1, "install <git-url>", "")
-    print_help_line(1, "uninstall <git-url>", "")
-    print_help_line(1, "update <git-url>", "")
-    print_help_line(1, "{update-all, updae}", "")
+    print_help_line(1, "install <git-url>", "install the config plugin at the specified git repository")
+    print_help_line(1, "uninstall <git-url>", "uninstall the config plugin at the specified git repository")
+    print_help_line(1, "update <git-url>", "update the config plugin at the specified git repository")
+    print_help_line(1, "{update-all, update}", "update all the config plugins installed via git repository")
 
 
 def parse_command(args):
