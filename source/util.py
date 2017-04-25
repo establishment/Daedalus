@@ -39,8 +39,12 @@ def apt_get(app_name):
 
 
 def load_json(path):
-    with open(path) as data_file:
-        return json.load(data_file)
+    try:
+        with open(path) as data_file:
+            return json.load(data_file)
+    except json.decoder.JSONDecodeError as e:
+        print("Error: invalid JSON format at \"" + path + "\"")
+    return {}
 
 
 def save_json(path, data):
