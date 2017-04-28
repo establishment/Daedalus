@@ -16,6 +16,10 @@ def print_help():
     print_help_line(1, "sysctl <path/to/file>", "overwrites and apply sysctl settings from config file at path/to/file")
     print_help_line(1, "{security-limits, securitylimits, sec-limits, sec-lims, security-lims}",
                     "overwrites and apply security limits from config file at path/to/file")
+    print_help_line(1, "systemd <path/to/file>", "updates the systemd config file with the file at path/to/file")
+    print_help_line(1, "pam-common", "updates common-session pam.d file with file at path/to/file")
+    print_help_line(1, "pam-common-noninteractive",
+                    "updates common-session-noninteractive pam.d file with file at path/to/file")
     print_help_line(1, "set-hostname", "change current machine hostname")
 
 
@@ -42,6 +46,15 @@ def parse_command(args):
         elif args[1] == "set-hostname":
             valid_command = True
             ApplyManager.set_hostname(args[2])
+        elif args[1] == "systemd":
+            valid_command = True
+            ApplyManager.systemd(args[2])
+        elif args[1] == "pam-common":
+            valid_command = True
+            ApplyManager.pam_common(args[2])
+        elif args[1] == "pam-common-noninteractive":
+            valid_command = True
+            ApplyManager.pam_common_noninteractive(args[2])
     return valid_command
 
 
@@ -58,3 +71,15 @@ class ApplyManager:
     @classmethod
     def set_hostname(cls, hostname):
         run(os.environ.get("DAEDALUS_ROOT") + "/tools/bash/set_hostname.sh " + hostname)
+
+    @classmethod
+    def systemd(cls, path):
+        run("cp " + path + " /etc/systemd/system.conf")
+
+    @classmethod
+    def pam_common(cls, path):
+        run("cp " + path + " /etc/pam.d/common-session")
+
+    @classmethod
+    def pam_common_noninteractive(cls, path):
+        run("cp " + path + " /etc/pam.d/common-session-noninteractive")
