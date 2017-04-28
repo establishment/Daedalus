@@ -250,7 +250,8 @@ class Module:
     def set_namespace(self, namespace):
         if namespace == "<this>" or self.is_singleton():
             self.namespace = None
-        self.namespace = namespace
+        else:
+            self.namespace = namespace
 
     def is_install_script(self, script):
         script_data = self.search_script_by_alias(script)
