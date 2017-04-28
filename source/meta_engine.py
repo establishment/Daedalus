@@ -96,9 +96,7 @@ class MetaEngine:
         for module_name in module_names:
             module = self.module(module_name)
             for namespace in module.available_namespaces:
-                module.namespace = namespace
-                if module.namespace == "<this>":
-                    module.namespace = None
+                module.set_namespace(namespace)
                 module.run(command)
 
     def startup(self):

@@ -359,7 +359,7 @@ def module_exec(name, command, params=None):
             module = get_module_or_exit(dependence_name)
             if module.is_install_script(command) or namespace in \
                module.available_namespaces:
-                module.namespace = namespace
+                module.set_namespace(namespace)
             module.run(command, params=params)
     else:
         module.run(command, params=params)

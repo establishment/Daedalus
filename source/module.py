@@ -11,7 +11,7 @@ class Module:
     def __init__(self, name, root_dir, env=None, custom_config_path=None,
                 custom_config_modules_dir=None, custom_config_module_dir=None,
                 namespace=None):
-        self.namespace = namespace
+        self.namespace = None
         self.available_namespaces = []
 
         if env:
@@ -68,6 +68,8 @@ class Module:
             self.log("Error: Module \"" + self.name + "\" does not have a description file!")
         else:
             self.parse_description(load_json(description_file))
+
+        self.set_namespace(namespace)
 
     def get_metadata(self):
         data = {
@@ -239,6 +241,16 @@ class Module:
         if "isRecursive" not in script_data:
             return False
         return script_data["isRecursive"]
+
+    def is_singleton(self):
+        if "isSingleton" not in self.desc:
+            return False
+        return self.desc["isSingleton"]
+
+    def set_namespace(self, namespace):
+        if namespace == "<this>" or self.is_singleton():
+            self.namespace = None
+        self.namespace = namespace
 
     def is_install_script(self, script):
         script_data = self.search_script_by_alias(script)
