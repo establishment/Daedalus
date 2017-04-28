@@ -164,12 +164,17 @@ class Module:
 
     def check_dependencies(self, dependencies):
         for key in dependencies:
+            if "." not in key and self.config_plugin_name:
+                key = self.config_plugin_name + "." + key
             if not self.config_fs.exists(key):
                 return False
         return True
 
     def is_outdated(self):
-        return self.config_fs.get(self.desc["module"] + "-version") != self.desc["version"]
+        module_name = self.desc["module"]
+        if self.config_plugin_name:
+            module_name = self.config_plugin_name + "." + module_name
+        return self.config_fs.get(module_name + "-version") != self.desc["version"]
 
     def purge(self):
         self.config_fs.delete(self.desc["module"] + "-version")
