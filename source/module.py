@@ -113,12 +113,13 @@ class Module:
                         dependency = self.config_plugin_name + "." + dependency
                     self.dependencies.append(dependency)
 
-    def log(self, message):
-        namespace_str = ""
+    def get_this_tag(self):
         if self.namespace:
-            namespace_str = "#" + self.namespace
+            return self.name + "#" + self.namespace
+        return self.name
 
-        print("<" + self.name + namespace_str + ">: " + message)
+    def log(self, message):
+        print("<" + self.get_this_tag() + ">: " + message)
 
     def get_scripts(self):
         return self.scripts
@@ -166,7 +167,9 @@ class Module:
 
     def check_dependencies(self, dependencies):
         for key in dependencies:
-            if "." not in key and self.config_plugin_name:
+            if key == "<this>":
+                key = self.get_this_tag()
+            elif "." not in key and self.config_plugin_name:
                 key = self.config_plugin_name + "." + key
             if not self.config_fs.exists(key):
                 return False
