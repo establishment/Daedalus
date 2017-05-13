@@ -115,11 +115,16 @@ class Module:
 
     def get_this_tag(self):
         if self.namespace:
+            return self.name + "-version#" + self.namespace
+        return self.name + "-version"
+
+    def get_full_name(self):
+        if self.namespace:
             return self.name + "#" + self.namespace
         return self.name
 
     def log(self, message):
-        print("<" + self.get_this_tag() + ">: " + message)
+        print("<" + self.get_full_name() + ">: " + message)
 
     def get_scripts(self):
         return self.scripts
