@@ -24,6 +24,7 @@ def print_help():
                     "but you can also pass it in plain text as an argument")
     print_help_line(1, "run [user] <host> <script>", "runs local script on user@host (by default user is root)")
     print_help_line(1, "scp <from> <to>", "use exactly as scp")
+    print_help_line(1, "pair <from_user> <from_address> <to_user> <to_address> [key_name]", "")
     print_help_line(0, "It's recommended to use Daedalus for ssh only when you want to copy-id by default if not " +
                     "currently present on the remote machine!")
 
@@ -77,6 +78,13 @@ def parse_command(args):
         if args[1] == "link":
             valid_command = True
             SSHManager.ssh_copy_id(args[4], args[2], args[3], password=args[5])
+        elif args[1] == "pair":
+            valid_command = True
+            SSHManager.ssh_pair(args[2], args[3], args[4], args[5])
+    elif len(args) == 7:
+        if args[1] == "pair":
+            valid_command = True
+            SSHManager.ssh_pair(args[2], args[3], args[4], args[5], args[6])
     return valid_command
 
 
@@ -289,3 +297,14 @@ class SSHManager:
         result = subprocess.call("ssh " + user + "@" + hostname + " -qo PasswordAuthentication=no exit 0 || exit 1",
                                  shell=True, stdout=devnull, stderr=devnull)
         return result == 1
+
+    @classmethod
+    def ssh_pair(cls, from_user, from_address, to_user, to_address, key="id_rsa"):
+        if cls.is_password_required(from_user, from_address):
+            cls.ssh_copy_id("id_rsa", from_user, from_address)
+        if cls.is_password_required(to_user, to_address):
+            cls.ssh_copy_id("id_rsa", to_user, to_address)
+        command = "ssh " + from_user + "@" + from_address + " 'cat ~/.ssh/" + key + ".pub' | ssh " + to_user + "@" + \
+                  to_address + " 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys'"
+        print(command)
+        subprocess.call(command, shell=True)
