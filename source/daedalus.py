@@ -15,6 +15,7 @@ import plugins.apply
 import plugins.template
 import plugins.apt
 import plugins.config_manager
+import plugins.deployer
 import config
 import filelock
 from util import renew_env_var, apt_get, apt_update, id_generator, load_json
@@ -39,6 +40,7 @@ print(strftime("[%Y-%m-%d %H:%M:%S]", gmtime()) + " executing command: " + comma
 
 flock = None
 session_uid = None
+
 
 def exit_handler():
     global flock
@@ -178,6 +180,7 @@ def get_metadata():
 
 DAEDALUS_VERSION_META = load_json("version.json")
 
+
 def print_help():
     print_help_line(0, "Daedalus is a collection of tools and scripts with " + 
                     "the purpose of making deploying and sysadmin jobs " + 
@@ -248,6 +251,7 @@ def print_help():
     print_help_line(2, "apt", "wrapper over apt")
     print_help_line(2, "{config-manager, conf-manager, conf-man, config-man}",
                     "manager for configuration plugins")
+    print_help_line(2, "deployer", "")
 
 valid_command = False
 if len(sys.argv) == 1:
@@ -337,10 +341,15 @@ if len(sys.argv) >= 2 and sys.argv[1] in ["config-manager", "conf-manager",
     check_plugin_return_code(plugins.config_manager.parse_command(args), 
                              sys.argv[1])
 
+if len(sys.argv) >= 2 and sys.argv[1] in ["deployer"]:
+    args = sys.argv.copy()
+    args.pop(0)
+    check_plugin_return_code(plugins.deployer.parse_command(args), sys.argv[1])
+
 if len(sys.argv) >= 2 and sys.argv[1] in ["project"]:
     args = sys.argv.copy()
     args.pop(0)
-    check_plugin_return_code(config.project_parse_command(args), "project")
+    check_plugin_return_code(config.project_parse_command(args), sys.argv[1])
 
 
 def get_module_or_exit(name):
