@@ -1,10 +1,12 @@
 import sys
 import os
 import stat
+
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import print_help_line, get_real_path, escape_arg
+import config
+from util import print_help_line, get_real_path, escape_arg, ensure_json_exists, load_json, save_json
 from json_include import JSONInclude
 
 
@@ -22,26 +24,84 @@ def parse_command(args):
         if args[1] == "help":
             valid_command = True
             print_help()
+        elif args[1] == "get-context-path":
+            valid_command = True
+            Deployer.load_settings()
+            print(Deployer.settings.get("pathToContext", None))
+        elif args[1] == "get-context":
+            valid_command = True
+            Deployer.load_context()
+            print(Deployer.context)
     elif len(args) == 3:
         if args[1] == "preprocess":
             valid_command = True
+            Deployer.load_context()
             print(Deployer.preprocess(args[2]))
         elif args[1] == "compile":
             valid_command = True
+            Deployer.load_context()
             print(Deployer.compile(args[2]))
+        elif args[1] == "set-context":
+            valid_command = True
+            Deployer.load_settings()
+            Deployer.set_context(args[2])
+            Deployer.save_settings()
     elif len(args) == 4:
         if args[1] == "preprocess":
             valid_command = True
+            Deployer.load_context()
             Deployer.preprocess(args[2], args[3])
         elif args[1] == "compile":
             valid_command = True
+            Deployer.load_context()
             Deployer.compile(args[2], args[3])
     return valid_command
 
 
 class Deployer:
+    settings_default_path = None
+    settings = {}
+    context = {}
+
     def __init__(self):
-        self.entries = []
+        pass
+
+    @classmethod
+    def init_default_context(cls):
+        autossh_config_path = config.Manager.get_current_state_path() + "/deployer.json"
+        ensure_json_exists(autossh_config_path)
+        cls.set_default_path(autossh_config_path)
+
+    @classmethod
+    def set_default_path(cls, path):
+        cls.settings_default_path = path
+
+    @classmethod
+    def load_settings(cls, path=None):
+        if not path:
+            if cls.settings_default_path is None:
+                cls.init_default_context()
+            path = cls.settings_default_path
+        cls.settings = load_json(path)
+
+    @classmethod
+    def save_settings(cls, path=None):
+        if not path:
+            if cls.settings_default_path is None:
+                cls.init_default_context()
+            path = cls.settings_default_path
+        save_json(path, cls.settings)
+
+    @classmethod
+    def load_context(cls, path=None):
+        if not path:
+            cls.load_settings()
+        if "pathToContext" in cls.settings:
+            cls.context = load_json(cls.settings["pathToContext"])
+
+    @classmethod
+    def set_context(cls, path):
+        cls.settings["pathToContext"] = get_real_path(path)
 
     @classmethod
     def preprocess(cls, path, save_path=None):
@@ -68,7 +128,8 @@ class Deployer:
         if "project" in json_include.data:
             if "name" in json_include.data["project"]:
                 if "path" in json_include.data["project"]:
-                    script += "daedalus project add " + json_include.data["project"]["name"] + " " + json_include.data["project"]["path"] + "\n"
+                    script += "daedalus project add " + json_include.data["project"]["name"] + " " + \
+                              json_include.data["project"]["path"] + "\n"
                 script += "daedalus project switch " + json_include.data["project"]["name"] + "\n"
         return cls.lazy_new_line(script)
 
@@ -125,7 +186,7 @@ class Deployer:
         if "hosts" in json_include.data:
             for host in json_include.data["hosts"]:
                 if "privateIP" in json_include.data["hosts"][host]:
-                    script += "daedalus hosts add " + host + " " + json_include.data["hosts"][host]["privateIP"] + "\n"
+                    script += "daedalus hosts add " + host + " " + str(json_include.data["hosts"][host]["privateIP"]) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
@@ -160,8 +221,38 @@ class Deployer:
         return cls.lazy_new_line(script)
 
     @classmethod
+    def get_context_key(cls, key):
+        if isinstance(key, str):
+            if key.startswith("C>"):
+                return key[2:]
+        return None
+
+    @classmethod
+    def resolve_context(cls, data):
+        for k, v in data.items():
+            if isinstance(data[k], list):
+                temp = []
+                for val in data[k]:
+                    var_key = cls.get_context_key(val)
+                    if var_key:
+                        if var_key in cls.context:
+                            temp.append(cls.context[var_key])
+                    else:
+                        temp.append(val)
+            elif isinstance(data[k], dict):
+                cls.resolve_context(data[k])
+            else:
+                var_key = cls.get_context_key(v)
+                if var_key:
+                    if var_key in cls.context:
+                        data[k] = cls.context[var_key]
+                    else:
+                        data[k] = None
+
+    @classmethod
     def compile(cls, path, save_path=None):
         json_include = JSONInclude.get(get_real_path(path))
+        cls.resolve_context(json_include.data)
         script = cls.compile_header(json_include)
         script += cls.compile_project_setup(json_include)
         script += cls.compile_https(json_include)
