@@ -477,6 +477,25 @@ class Deployer:
         return script
 
     @classmethod
+    def get_master_ssh_extensions(cls, machine_json_include):
+        ssh_extensions = []
+        if "sshLink" in machine_json_include.data:
+            for entry in machine_json_include.data["sshLink"]:
+                to_user = machine_json_include.data["sshLink"][entry]["remoteUser"]
+                to_address = machine_json_include.data["sshLink"][entry]["remotePublicIP"]
+                if to_user != "root":
+                    ssh_extensions.append(to_user + "@" + to_address)
+        return ssh_extensions
+
+    @classmethod
+    def compile_master_pair_extend(cls, ssh_extensions):
+        script = ""
+        for extension in ssh_extensions:
+            tokens = extension.split("@")
+            script += "daedalus ssh extend root " + tokens[1] + " " + tokens[0] + "\n"
+        return cls.lazy_new_line(script)
+
+    @classmethod
     def compile_master_pair(cls, machine_json_include):
         script = ""
         if "sshLink" in machine_json_include.data:
@@ -539,6 +558,13 @@ class Deployer:
             script += cls.compile_hosts(machine_json_include, run_on=machine["address"])
 
         # SSH LINK
+        ssh_extensions = []
+        for machine in machines:
+            machine_json_include = machine["machine"]
+            ssh_extensions += cls.get_master_ssh_extensions(machine_json_include)
+        ssh_extensions = list(set(ssh_extensions))
+        script += cls.compile_master_pair_extend(ssh_extensions)
+
         for machine in machines:
             machine_json_include = machine["machine"]
             script += cls.compile_master_pair(machine_json_include)
