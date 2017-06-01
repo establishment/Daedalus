@@ -25,6 +25,7 @@ def print_help():
     print_help_line(1, "run [user] <host> <script>", "runs local script on user@host (by default user is root)")
     print_help_line(1, "scp <from> <to>", "use exactly as scp")
     print_help_line(1, "pair <from_user> <from_address> <to_user> <to_address> [key_name]", "")
+    print_help_line(1, "extend <user> <address> <new_user> [key_name]", "")
     print_help_line(0, "It's recommended to use Daedalus for ssh only when you want to copy-id by default if not " +
                     "currently present on the remote machine!")
 
@@ -74,6 +75,9 @@ def parse_command(args):
         elif args[1] == "run":
             valid_command = True
             SSHManager.ssh_run(args[2], args[3], args[4])
+        elif args[1] == "extend":
+            valid_command = True
+            SSHManager.ssh_extend(args[2], args[3], args[4])
     elif len(args) == 6:
         if args[1] == "link":
             valid_command = True
@@ -81,6 +85,9 @@ def parse_command(args):
         elif args[1] == "pair":
             valid_command = True
             SSHManager.ssh_pair(args[2], args[3], args[4], args[5])
+        elif args[1] == "extend":
+            valid_command = True
+            SSHManager.ssh_extend(args[2], args[3], args[4], args[5])
     elif len(args) == 7:
         if args[1] == "pair":
             valid_command = True
@@ -306,5 +313,13 @@ class SSHManager:
             cls.ssh_copy_id("id_rsa", to_user, to_address)
         command = "ssh " + from_user + "@" + from_address + " 'cat ~/.ssh/" + key + ".pub' | ssh " + to_user + "@" + \
                   to_address + " 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys'"
-        print(command)
+        subprocess.call(command, shell=True)
+
+    @classmethod
+    def ssh_extend(cls, user, address, new_user, key="id_rsa"):
+        if cls.is_password_required(user, address):
+            cls.ssh_copy_id("id_rsa", user, address)
+        ssh_dir = "$(getent passwd \"" + new_user + "\" | cut -d: -f6)/.ssh"
+        command = "cat ~/.ssh/" + key + ".pub | ssh " + user + "@" + address + \
+                  " 'umask 0077; mkdir -p " + ssh_dir + "; cat >> " + ssh_dir + "/authorized_keys'"
         subprocess.call(command, shell=True)
