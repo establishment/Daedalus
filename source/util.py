@@ -150,10 +150,12 @@ def run(command, env=None, overwrite_env=False, shell=True):
     return rc
 
 
-def get_real_path(path):
+def get_real_path(path, work_dir=None):
     if path.startswith("/"):
         return path
-    return os.environ.get("DAEDALUS_WORKING_DIRECTORY") + "/" + path
+    if work_dir is None:
+        work_dir = os.environ.get("DAEDALUS_WORKING_DIRECTORY")
+    return os.path.join(work_dir, path)
 
 
 def print_help_line(nest_level, col1, col2=None, col1_size=30, col_separator=" - "):

@@ -16,6 +16,7 @@ import plugins.template
 import plugins.apt
 import plugins.config_manager
 import plugins.deployer
+import plugins.shell
 import config
 import filelock
 from util import renew_env_var, apt_get, apt_update, id_generator, load_json
@@ -251,7 +252,8 @@ def print_help():
     print_help_line(2, "apt", "wrapper over apt")
     print_help_line(2, "{config-manager, conf-manager, conf-man, config-man}",
                     "manager for configuration plugins")
-    print_help_line(2, "deployer", "")
+    print_help_line(2, "deployer", "deploy machines and clusters from JSON description files")
+    print_help_line(2, "shell", "wrapper for default shell")
 
 valid_command = False
 if len(sys.argv) == 1:
@@ -345,6 +347,11 @@ if len(sys.argv) >= 2 and sys.argv[1] in ["deployer"]:
     args = sys.argv.copy()
     args.pop(0)
     check_plugin_return_code(plugins.deployer.parse_command(args), sys.argv[1])
+
+if len(sys.argv) >= 2 and sys.argv[1] in ["shell"]:
+    args = sys.argv.copy()
+    args.pop(0)
+    check_plugin_return_code(plugins.shell.parse_command(args), sys.argv[1])
 
 if len(sys.argv) >= 2 and sys.argv[1] in ["project"]:
     args = sys.argv.copy()

@@ -119,113 +119,200 @@ class Deployer:
         return text
 
     @classmethod
-    def compile_header(cls, json_include):
+    def compile_header(cls, json_include, run_on=None):
         return "#!/usr/bin/env bash\n\n"
 
     @classmethod
-    def compile_project_setup(cls, json_include):
+    def compile_init(cls, json_include, run_on=None):
+        script = ""
+        if "init" in json_include.data:
+            script = cls.compile_command_block(json_include.data["init"], run_on=run_on)
+        return cls.lazy_new_line(script)
+
+    @classmethod
+    def compile_project_setup(cls, json_include, run_on=None):
         script = ""
         if "project" in json_include.data:
             if "name" in json_include.data["project"]:
                 if "path" in json_include.data["project"]:
-                    script += "daedalus project add " + json_include.data["project"]["name"] + " " + \
-                              json_include.data["project"]["path"] + "\n"
-                script += "daedalus project switch " + json_include.data["project"]["name"] + "\n"
+                    command = "daedalus project add " + json_include.data["project"]["name"] + " " + \
+                              json_include.data["project"]["path"]
+                    script += cls.compile_run_on(command, run_on) + "\n"
+                command = "daedalus project switch " + json_include.data["project"]["name"]
+                script += cls.compile_run_on(command, run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_https(cls, json_include):
+    def compile_https(cls, json_include, run_on=None):
         script = ""
         if "https" in json_include.data:
             for entry in json_include.data["https"]:
                 if "email" in json_include.data["https"][entry]:
-                    script += ""
+                    script += cls.compile_run_on("daedalus https new-ssl " + entry + " " +
+                                                 json_include.data["https"][entry]["email"], run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_params(cls, json_include):
+    def compile_configfs(cls, json_include, run_on=None):
         script = ""
-        if "params" in json_include.data:
-            for key in json_include.data["params"]:
-                if type(json_include.data["params"][key]) is list:
-                    for list_el in json_include.data["params"][key]:
-                        script += "daedalus configfs insert " + key + " " + escape_arg(list_el) + "\n"
-                elif json_include.data["params"][key] is None:
-                    script += "daedalus configfs request-private " + key + "\n"
+        if "configfs" in json_include.data:
+            for key in json_include.data["configfs"]:
+                if type(json_include.data["configfs"][key]) is list:
+                    for list_el in json_include.data["configfs"][key]:
+                        script += cls.compile_run_on("daedalus configfs insert " + key + " " + escape_arg(list_el),
+                                                     run_on) + "\n"
+                elif json_include.data["configfs"][key] is None:
+                    script += cls.compile_run_on("daedalus configfs request-private " + key, run_on) + "\n"
                 else:
-                    script += "daedalus configfs set " + key + " " + escape_arg(str(json_include.data["params"][key])) \
-                              + "\n"
+                    script += cls.compile_run_on("daedalus configfs set " + key + " " +
+                                                 escape_arg(str(json_include.data["configfs"][key])), run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_modules(cls, json_include):
+    def compile_modules(cls, json_include, run_on=None):
         script = ""
         if "modules" in json_include.data:
             for module in json_include.data["modules"]:
                 if json_include.data["modules"][module] == "latest":
-                    script += "daedalus install " + module + "\n"
+                    command = "daedalus install " + module
+                    script += cls.compile_run_on(command, run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_commands(cls, commands):
+    def compile_commands(cls, commands, run_on=None):
         script = ""
         for command in commands:
-            script += "daedalus " + command + "\n"
+            script += cls.compile_run_on("daedalus " + command, run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_post_install(cls, json_include):
+    def command_block_get_all_priorities(cls, command_block):
+        priorities = []
+        for entry in command_block:
+            if "priority" not in entry:
+                continue
+            if "commands" not in entry:
+                continue
+            priorities.append(entry["priority"])
+        return sorted(set(priorities))
+
+    @classmethod
+    def compile_command_block(cls, command_block, run_on=None, priority=None):
+        script = ""
+        if priority is None:
+            priorities = cls.command_block_get_all_priorities(command_block)
+            for target_priority in priorities:
+                script += cls.compile_command_block(command_block, priority=target_priority, run_on=run_on)
+        else:
+            for entry in command_block:
+                if "priority" not in entry:
+                    continue
+                if "commands" not in entry:
+                    continue
+                current_run_on = run_on
+                if "ignoreRunOn" in entry:
+                    if entry["ignoreRunOn"]:
+                        current_run_on = None
+                if priority == entry["priority"]:
+                    script += cls.compile_commands(entry["commands"], run_on=current_run_on)
+        return script
+
+    @classmethod
+    def compile_post_install(cls, json_include, run_on=None, priority=None):
         script = ""
         if "postInstall" in json_include.data:
-            script = cls.compile_commands(json_include.data["postInstall"])
+            script = cls.compile_command_block(json_include.data["postInstall"], run_on=run_on, priority=priority)
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_hosts(cls, json_include):
+    def compile_hosts(cls, json_include, run_on=None):
         script = ""
         if "hosts" in json_include.data:
             for host in json_include.data["hosts"]:
                 if "privateIP" in json_include.data["hosts"][host]:
-                    script += "daedalus hosts add " + host + " " + str(json_include.data["hosts"][host]["privateIP"]) + "\n"
+                    command = "daedalus hosts add " + host + " " + \
+                              str(json_include.data["hosts"][host]["privateIP"])
+                    script += cls.compile_run_on(command, run_on) + "\n"
+                elif "publicIP" in json_include.data["hosts"][host]:
+                    command = "daedalus hosts add " + host + " " + \
+                              str(json_include.data["hosts"][host]["publicIP"])
+                    script += cls.compile_run_on(command, run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_ssh_link(cls, json_include):
+    def compile_ssh_link(cls, json_include, run_on=None):
         script = ""
         if "sshLink" in json_include.data:
             for host in json_include.data["sshLink"]:
-                script += "daedalus ssh link " + json_include.data["sshLink"][host]["remoteUser"] + " " + \
+                command = "daedalus ssh link " + json_include.data["sshLink"][host]["remoteUser"] + " " + \
                           json_include.data["sshLink"][host]["remoteHost"] + " " + \
-                          json_include.data["sshLink"][host]["sshKey"] + "\n"
+                          json_include.data["sshLink"][host]["sshKey"]
+                script += cls.compile_run_on(command, run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_autossh(cls, json_include):
+    def compile_autossh(cls, json_include, run_on=None):
         script = ""
         if "autossh" in json_include.data:
             for entry in json_include.data["autossh"]:
-                script += "daedalus autossh add " + str(json_include.data["autossh"][entry]["localPort"]) + " " + \
+                command = "daedalus autossh add " + str(json_include.data["autossh"][entry]["localPort"]) + " " + \
                           json_include.data["autossh"][entry]["localHost"] + " " + \
                           str(json_include.data["autossh"][entry]["remotePort"]) + " " + \
                           json_include.data["autossh"][entry]["remoteUser"] + " " + \
-                          json_include.data["autossh"][entry]["remoteHost"] + "\n"
+                          json_include.data["autossh"][entry]["remoteHost"]
+                script += cls.compile_run_on(command, run_on) + "\n"
             if script != "":
-                script += "daedalus autossh apply --overwrite\n"
+                script += cls.compile_run_on("daedalus autossh apply --overwrite", run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
-    def compile_post_ssh_link(cls, json_include):
+    def compile_post_ssh_link(cls, json_include, run_on=None, priority=None):
         script = ""
         if "postSSHLink" in json_include.data:
-            script = cls.compile_commands(json_include.data["postSSHLink"])
+            script = cls.compile_command_block(json_include.data["postSSHLink"], run_on=run_on, priority=priority)
         return cls.lazy_new_line(script)
 
     @classmethod
-    def get_context_key(cls, key):
-        if isinstance(key, str):
-            if key.startswith("C>"):
-                return key[2:]
-        return None
+    def write_script(cls, save_path, script):
+        with open(save_path, "w") as save_file:
+            save_file.write(script)
+        st = os.stat(save_path)
+        os.chmod(save_path, st.st_mode | stat.S_IEXEC)
+
+    @classmethod
+    def replace_bulk(cls, val, replace_array):
+        temp = val
+        for entry in replace_array:
+            if entry["to"] is None:
+                to = ""
+            else:
+                to = entry["to"]
+            temp = temp.replace(entry["from"], to)
+        return temp
+
+    @classmethod
+    def translate_context(cls, val):
+        replace_array = []
+        state = 0
+        payload = ""
+        for i, c in enumerate(val):
+            if c == "C" and state == 0:
+                state = 1
+            elif c == ">" and state == 1:
+                state = 2
+            elif c == "{" and state == 2:
+                state = 3
+                payload = ""
+            elif c == "}" and state == 3:
+                state = 0
+                content = None
+                if payload in cls.context:
+                    content = cls.context[payload]
+                replace_array.append({"from": "C>{" + payload + "}", "to": content})
+            elif state == 3:
+                payload += c
+        val = cls.replace_bulk(val, replace_array)
+        return val
 
     @classmethod
     def resolve_context(cls, data):
@@ -233,39 +320,187 @@ class Deployer:
             if isinstance(data[k], list):
                 temp = []
                 for val in data[k]:
-                    var_key = cls.get_context_key(val)
-                    if var_key:
-                        if var_key in cls.context:
-                            temp.append(cls.context[var_key])
-                    else:
+                    if isinstance(val, dict):
+                        cls.resolve_context(val)
                         temp.append(val)
+                    else:
+                        temp.append(cls.translate_context(val))
+                data[k] = temp
             elif isinstance(data[k], dict):
                 cls.resolve_context(data[k])
-            else:
-                var_key = cls.get_context_key(v)
-                if var_key:
-                    if var_key in cls.context:
-                        data[k] = cls.context[var_key]
+            elif isinstance(data[k], str):
+                data[k] = cls.translate_context(data[k])
+
+    @classmethod
+    def get_json_param(cls, param, path, work_dir=None, this=None):
+        if path == "this":
+            data = this
+        else:
+            data = load_json(get_real_path(path, work_dir=work_dir))
+        if "params" not in data:
+            return None
+        if param not in data["params"]:
+            return None
+        return data["params"][param]
+
+    @classmethod
+    def translate_params(cls, val, work_dir=None, this=None):
+        replace_array = []
+        state = 0
+        payload = ""
+        for i, c in enumerate(val):
+            if c == "P" and state == 0:
+                state = 1
+            elif c == ">" and state == 1:
+                state = 2
+            elif c == "{" and state == 2:
+                state = 3
+                payload = ""
+            elif c == "}" and state == 3:
+                state = 0
+                if "@" not in payload:
+                    param = payload
+                    path = "this"
+                else:
+                    tokens = payload.split("@")
+                    if len(tokens) != 2:
+                        continue
+                    param = tokens[0]
+                    path = tokens[1]
+                replace_array.append({"from": "P>{" + payload + "}", "to": cls.get_json_param(param, path,
+                                                                                              work_dir=work_dir,
+                                                                                              this=this)})
+            elif state == 3:
+                payload += c
+        val = cls.replace_bulk(val, replace_array)
+        return val
+
+    @classmethod
+    def resolve_params(cls, data, work_dir=None, this=None):
+        for k, v in data.items():
+            if isinstance(data[k], list):
+                temp = []
+                for val in data[k]:
+                    if isinstance(val, dict):
+                        cls.resolve_params(val, work_dir=work_dir, this=this)
+                        temp.append(val)
                     else:
-                        data[k] = None
+                        temp.append(cls.translate_params(val, work_dir=work_dir, this=this))
+                data[k] = temp
+            elif isinstance(data[k], dict):
+                cls.resolve_params(data[k])
+            elif isinstance(data[k], str):
+                data[k] = cls.translate_params(data[k], work_dir=work_dir, this=this)
+
+    @classmethod
+    def translate_env_vars(cls, val, work_dir=None, this=None):
+        replace_array = []
+        state = 0
+        payload = ""
+        for i, c in enumerate(val):
+            if c == "E" and state == 0:
+                state = 1
+            elif c == ">" and state == 1:
+                state = 2
+            elif c == "{" and state == 2:
+                state = 3
+                payload = ""
+            elif c == "}" and state == 3:
+                state = 0
+                env = os.environ.copy()
+                env.update(config.Manager.get_env())
+                content = env.get(payload, None)
+                replace_array.append({"from": "E>{" + payload + "}", "to": content})
+            elif state == 3:
+                payload += c
+        val = cls.replace_bulk(val, replace_array)
+        return val
+
+    @classmethod
+    def resolve_env_vars(cls, data):
+        for k, v in data.items():
+            if isinstance(data[k], list):
+                temp = []
+                for val in data[k]:
+                    if isinstance(val, dict):
+                        cls.resolve_env_vars(val)
+                        temp.append(val)
+                    else:
+                        temp.append(cls.translate_env_vars(val))
+                data[k] = temp
+            elif isinstance(data[k], dict):
+                cls.resolve_env_vars(data[k])
+            elif isinstance(data[k], str):
+                data[k] = cls.translate_env_vars(data[k])
+
+    @classmethod
+    def compile_machine(cls, json_include, save_path=None, work_dir=None, add_header=True, run_on=None):
+        if add_header:
+            script = cls.compile_header(json_include, run_on=run_on)
+        else:
+            script = ""
+        script += cls.compile_init(json_include, run_on=run_on)
+        script += cls.compile_project_setup(json_include, run_on=run_on)
+        script += cls.compile_https(json_include, run_on=run_on)
+        script += cls.compile_configfs(json_include, run_on=run_on)
+        script += cls.compile_modules(json_include, run_on=run_on)
+        script += cls.compile_post_install(json_include, run_on=run_on)
+        script += cls.compile_hosts(json_include, run_on=run_on)
+        script += cls.compile_ssh_link(json_include, run_on=run_on)
+        script += cls.compile_autossh(json_include, run_on=run_on)
+        script += cls.compile_post_ssh_link(json_include, run_on=run_on)
+        if save_path is not None:
+            cls.write_script(save_path, script)
+        return script
+
+    @classmethod
+    def compile_run_on(cls, command, host=None):
+        if host:
+            return "daedalus ssh run " + host + " " + escape_arg(command)
+        return command
+
+    @classmethod
+    def compile_cluster_standalone(cls, json_include, save_path=None, work_dir=None):
+        script = cls.compile_header(json_include)
+        if "machines" in json_include.data:
+            for entry in json_include.data["machines"]:
+                if "address" not in entry:
+                    continue
+                if "description" not in entry:
+                    continue
+                machine_json_include = cls.load_description(get_real_path(entry["description"], work_dir=work_dir))
+                script += cls.compile_machine(machine_json_include, work_dir=work_dir, add_header=False,
+                                              run_on=entry["address"]) + "\n"
+        if save_path is not None:
+            cls.write_script(save_path, script)
+        return script
+
+    @classmethod
+    def compile_cluster_master(cls, json_include, save_path=None, work_dir=None):
+        pass
+
+    @classmethod
+    def compile_cluster(cls, json_include, save_path=None, work_dir=None):
+        if json_include.data["deployType"] == "standalone":
+            return cls.compile_cluster_standalone(json_include, save_path=save_path, work_dir=work_dir)
+        elif json_include.data["deployType"] == "master":
+            return cls.compile_cluster_standalone(json_include, save_path=save_path, work_dir=work_dir)
+
+    @classmethod
+    def load_description(cls, path, work_dir=None):
+        json_include = JSONInclude.get(get_real_path(path))
+        cls.resolve_params(json_include.data, work_dir=work_dir, this=json_include.data)
+        cls.resolve_context(json_include.data)
+        cls.resolve_env_vars(json_include.data)
+        return json_include
 
     @classmethod
     def compile(cls, path, save_path=None):
-        json_include = JSONInclude.get(get_real_path(path))
-        cls.resolve_context(json_include.data)
-        script = cls.compile_header(json_include)
-        script += cls.compile_project_setup(json_include)
-        script += cls.compile_https(json_include)
-        script += cls.compile_params(json_include)
-        script += cls.compile_modules(json_include)
-        script += cls.compile_post_install(json_include)
-        script += cls.compile_hosts(json_include)
-        script += cls.compile_ssh_link(json_include)
-        script += cls.compile_autossh(json_include)
-        script += cls.compile_post_ssh_link(json_include)
-        if save_path is not None:
-            with open(save_path, "w") as save_file:
-                save_file.write(script)
-            st = os.stat(save_path)
-            os.chmod(save_path, st.st_mode | stat.S_IEXEC)
-        return script
+        work_dir = os.path.dirname(path)
+        if not work_dir.startswith("/"):
+            work_dir = None
+        json_include = cls.load_description(path, work_dir=work_dir)
+        if json_include.data["type"] == "machine":
+            return cls.compile_machine(json_include, save_path=save_path, work_dir=work_dir)
+        elif json_include.data["type"] == "cluster":
+            return cls.compile_cluster(json_include, save_path=save_path, work_dir=work_dir)
