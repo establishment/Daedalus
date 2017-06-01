@@ -275,6 +275,7 @@ class Deployer:
 
     @classmethod
     def write_script(cls, save_path, script):
+        save_path = get_real_path(save_path)
         with open(save_path, "w") as save_file:
             save_file.write(script)
         st = os.stat(save_path)
