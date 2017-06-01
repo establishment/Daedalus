@@ -255,6 +255,25 @@ def print_help():
     print_help_line(2, "deployer", "deploy machines and clusters from JSON description files")
     print_help_line(2, "shell", "wrapper for default shell")
 
+
+new_args = []
+state = 0
+payload_key = ""
+payload_val = ""
+for arg in sys.argv:
+    if arg == "--env" and state == 0:
+        state = 1
+    elif state == 1:
+        state = 2
+        payload_key = arg
+    elif state == 2:
+        state = 0
+        payload_val = arg
+        os.environ[payload_key] = payload_val
+    elif state == 0:
+        new_args.append(arg)
+sys.argv = new_args
+
 valid_command = False
 if len(sys.argv) == 1:
     print("Daedalus is here! (" + str(DAEDALUS_VERSION) + ")")

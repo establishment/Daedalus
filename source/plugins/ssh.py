@@ -6,7 +6,7 @@ import tempfile
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
-from util import load_json, save_json, ensure_password, id_generator, run, get_files_in, print_help_line
+from util import load_json, save_json, ensure_password, id_generator, run, get_files_in, print_help_line, escape_arg
 
 
 # WARNING: Before trying to modify anything about how ssh run works, please read this question on StackOverflow:
@@ -218,7 +218,7 @@ class SSHManager:
 
     @classmethod
     def ssh_run_key(cls, user, hostname, command):
-        command = "ssh -t " + user + "@" + hostname + " \"set -m; " + command + "\""
+        command = "ssh -t " + user + "@" + hostname + " \"set -m; " + escape_arg(command, add_quotes=False) + "\""
         subprocess.call(command, shell=True)
 
     @classmethod

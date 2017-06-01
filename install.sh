@@ -13,12 +13,15 @@
 #cd $MY_PATH
 
 apt-get update
+apt-get install -y curl
 apt-get install -y python3
 apt-get install -y python3-setuptools
 apt-get install -y python3-dev
 apt-get install -y python3-pip
 easy_install3 pip
 pip install --upgrade pip
+curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python
+curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3
 pip3 install Jinja2
 pip3 install colorama
 

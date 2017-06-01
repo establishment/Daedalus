@@ -166,13 +166,16 @@ def print_help_line(nest_level, col1, col2=None, col1_size=30, col_separator=" -
     print(get_spaces(nest_level * 2) + col1 + get_spaces(col1_size - len(col1)) + col2)
 
 
-def escape_arg(arg):
+def escape_arg(arg, add_quotes=True):
     temp_arg = ""
     for c in arg:
         if c == "\"":
             temp_arg += "\\"
         temp_arg += c
-    return "\"" + temp_arg + "\""
+    if add_quotes:
+        return "\"" + temp_arg + "\""
+    else:
+        return temp_arg
 
 
 def dict_merge(dct, merge_dct, overwrite=False, merge_lists=True):
