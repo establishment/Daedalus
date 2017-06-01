@@ -1,6 +1,7 @@
 import sys
 import os
 import stat
+import copy
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
@@ -105,7 +106,7 @@ class Deployer:
 
     @classmethod
     def preprocess(cls, path, save_path=None):
-        json_include = JSONInclude.get(get_real_path(path))
+        json_include = copy.deepcopy(JSONInclude.get(get_real_path(path)))
         if save_path is not None:
             json_include.save(get_real_path(save_path))
         return json_include.data
@@ -123,10 +124,10 @@ class Deployer:
         return "#!/usr/bin/env bash\n\n"
 
     @classmethod
-    def compile_init(cls, json_include, run_on=None):
+    def compile_init(cls, json_include, run_on=None, priority=None):
         script = ""
         if "init" in json_include.data:
-            script = cls.compile_command_block(json_include.data["init"], run_on=run_on)
+            script = cls.compile_command_block(json_include.data["init"], run_on=run_on, priority=priority)
         return cls.lazy_new_line(script)
 
     @classmethod
@@ -477,18 +478,79 @@ class Deployer:
 
     @classmethod
     def compile_cluster_master(cls, json_include, save_path=None, work_dir=None):
-        pass
+        script = cls.compile_header(json_include)
+        machines = []
+        if "machines" in json_include.data:
+            for entry in json_include.data["machines"]:
+                if "address" not in entry:
+                    continue
+                if "description" not in entry:
+                    continue
+                machines.append({
+                    "machine": cls.load_description(get_real_path(entry["description"], work_dir=work_dir)),
+                    "address": entry["address"]
+                })
+
+        all_priorities = []
+        for machine in machines:
+            machine_json_include = machine["machine"]
+            if "init" in machine_json_include.data:
+                all_priorities += cls.command_block_get_all_priorities(machine_json_include.data["init"])
+        all_priorities = sorted(set(all_priorities))
+        for priority in all_priorities:
+            for machine in machines:
+                machine_json_include = machine["machine"]
+                script += cls.compile_init(machine_json_include, run_on=machine["address"], priority=priority)
+
+        for machine in machines:
+            machine_json_include = machine["machine"]
+            script += cls.compile_project_setup(machine_json_include, run_on=machine["address"])
+            script += cls.compile_https(machine_json_include, run_on=machine["address"])
+            script += cls.compile_configfs(machine_json_include, run_on=machine["address"])
+            script += cls.compile_modules(machine_json_include, run_on=machine["address"])
+
+        all_priorities = []
+        for machine in machines:
+            machine_json_include = machine["machine"]
+            if "postInstall" in machine_json_include.data:
+                all_priorities += cls.command_block_get_all_priorities(machine_json_include.data["postInstall"])
+        all_priorities = sorted(set(all_priorities))
+        for priority in all_priorities:
+            for machine in machines:
+                machine_json_include = machine["machine"]
+                script += cls.compile_post_install(machine_json_include, run_on=machine["address"], priority=priority)
+
+        for machine in machines:
+            machine_json_include = machine["machine"]
+            script += cls.compile_hosts(machine_json_include, run_on=machine["address"])
+
+        # SSH LINK
+
+        all_priorities = []
+        for machine in machines:
+            machine_json_include = machine["machine"]
+            if "postSSHLink" in machine_json_include.data:
+                all_priorities += cls.command_block_get_all_priorities(machine_json_include.data["postSSHLink"])
+        all_priorities = sorted(set(all_priorities))
+        for priority in all_priorities:
+            for machine in machines:
+                machine_json_include = machine["machine"]
+                script += cls.compile_post_ssh_link(machine_json_include, run_on=machine["address"], priority=priority)
+
+        if save_path is not None:
+            cls.write_script(save_path, script)
+        return script
 
     @classmethod
     def compile_cluster(cls, json_include, save_path=None, work_dir=None):
         if json_include.data["deployType"] == "standalone":
             return cls.compile_cluster_standalone(json_include, save_path=save_path, work_dir=work_dir)
         elif json_include.data["deployType"] == "master":
-            return cls.compile_cluster_standalone(json_include, save_path=save_path, work_dir=work_dir)
+            return cls.compile_cluster_master(json_include, save_path=save_path, work_dir=work_dir)
 
     @classmethod
     def load_description(cls, path, work_dir=None):
-        json_include = JSONInclude.get(get_real_path(path))
+        json_include = copy.deepcopy(JSONInclude.get(get_real_path(path)))
         cls.resolve_params(json_include.data, work_dir=work_dir, this=json_include.data)
         cls.resolve_context(json_include.data)
         cls.resolve_env_vars(json_include.data)
