@@ -169,7 +169,7 @@ def print_help_line(nest_level, col1, col2=None, col1_size=30, col_separator=" -
 def escape_arg(arg, add_quotes=True):
     temp_arg = ""
     for c in arg:
-        if c == "\"":
+        if c == "\"" or c == "\\":
             temp_arg += "\\"
         temp_arg += c
     if add_quotes:
