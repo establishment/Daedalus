@@ -477,6 +477,21 @@ class Deployer:
         return script
 
     @classmethod
+    def compile_master_pair(cls, machine_json_include):
+        script = ""
+        if "sshLink" in machine_json_include.data:
+            print(machine_json_include.data["sshLink"])
+            for entry in machine_json_include.data["sshLink"]:
+                from_user = "root"
+                from_address = machine_json_include.data["params"]["hostPublicIP"]
+                to_user = machine_json_include.data["sshLink"][entry]["remoteUser"]
+                to_address = machine_json_include.data["sshLink"][entry]["remotePublicIP"]
+                ssh_key = machine_json_include.data["sshLink"][entry]["sshKey"]
+                script += "daedalus ssh pair " + from_user + " " + from_address + " " + to_user + " " + \
+                          to_address + " " + ssh_key + "\n"
+        return cls.lazy_new_line(script)
+
+    @classmethod
     def compile_cluster_master(cls, json_include, save_path=None, work_dir=None):
         script = cls.compile_header(json_include)
         machines = []
@@ -486,10 +501,12 @@ class Deployer:
                     continue
                 if "description" not in entry:
                     continue
+                print(cls.load_description(get_real_path(entry["description"], work_dir=work_dir)).data["sshLink"])
                 machines.append({
                     "machine": cls.load_description(get_real_path(entry["description"], work_dir=work_dir)),
                     "address": entry["address"]
                 })
+        print("***********")
 
         all_priorities = []
         for machine in machines:
@@ -525,6 +542,9 @@ class Deployer:
             script += cls.compile_hosts(machine_json_include, run_on=machine["address"])
 
         # SSH LINK
+        for machine in machines:
+            machine_json_include = machine["machine"]
+            script += cls.compile_master_pair(machine_json_include)
 
         all_priorities = []
         for machine in machines:

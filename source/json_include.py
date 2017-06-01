@@ -1,4 +1,5 @@
 import os
+
 from util import load_json, save_json, dict_merge
 
 
@@ -7,9 +8,7 @@ class JSONInclude:
 
     @classmethod
     def get(cls, path):
-        if path not in cls.cache:
-            cls.cache[path] = JSONInclude(path)
-        return cls.cache[path]
+        return JSONInclude(path)
 
     def __init__(self, path):
         path_to_dir = os.path.dirname(path)
@@ -22,6 +21,8 @@ class JSONInclude:
                 dependencies = self.data["include"]
             else:
                 dependencies = []
+            print()
+            print(path + "     " + str(dependencies))
             for dependency in dependencies:
                 if not dependency.startswith("/"):
                     dependency_full_path = os.path.join(path_to_dir, dependency)
