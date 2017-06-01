@@ -21,8 +21,6 @@ class JSONInclude:
                 dependencies = self.data["include"]
             else:
                 dependencies = []
-            print()
-            print(path + "     " + str(dependencies))
             for dependency in dependencies:
                 if not dependency.startswith("/"):
                     dependency_full_path = os.path.join(path_to_dir, dependency)
