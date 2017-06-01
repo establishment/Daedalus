@@ -321,5 +321,6 @@ class SSHManager:
             cls.ssh_copy_id("id_rsa", user, address)
         ssh_dir = "$(getent passwd \"" + new_user + "\" | cut -d: -f6)/.ssh"
         command = "cat ~/.ssh/" + key + ".pub | ssh " + user + "@" + address + \
-                  " 'umask 0077; mkdir -p " + ssh_dir + "; cat >> " + ssh_dir + "/authorized_keys'"
+                  " 'umask 0077; mkdir -p " + ssh_dir + "; cat >> " + ssh_dir + "/authorized_keys; chown " + \
+                  new_user + " " + ssh_dir + "; chown " + new_user + " " + ssh_dir + "/authorized_keys'"
         subprocess.call(command, shell=True)
