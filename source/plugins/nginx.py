@@ -118,7 +118,8 @@ class NginxEngine:
 
     def load(self, domains_path=DEFAULT_DOMAINS_PATH, extensions_path=DEFAULT_EXTENSIONS_PATH):
         domains = get_files_in(domains_path)
-        domains.remove("default")
+        if "default" in domains:
+            domains.remove("default")
 
         for domain in domains:
             self.domains[domain] = {
