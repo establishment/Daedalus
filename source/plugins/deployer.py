@@ -570,6 +570,10 @@ class Deployer:
             machine_json_include = machine["machine"]
             script += cls.compile_master_pair(machine_json_include)
 
+        for machine in machines:
+            machine_json_include = machine["machine"]
+            script += cls.compile_autossh(machine_json_include, run_on=machine["address"])
+
         all_priorities = []
         for machine in machines:
             machine_json_include = machine["machine"]
