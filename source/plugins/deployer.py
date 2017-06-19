@@ -14,6 +14,10 @@ from json_include import JSONInclude
 def print_help():
     print_help_line(0, "Daedalus \"deployer\" plugin help:")
     print_help_line(1, "help", "prints this description")
+    print_help_line(1, "get-context-path", "prints the path to current context file")
+    print_help_line(1, "get-context", "prints the current context")
+    print_help_line(1, "set-context <path>", "sets the path to the current context file")
+    print_help_line(1, "compile <file> [output]", "compile an json machine description file into a shell script")
 
 
 def parse_command(args):
@@ -611,6 +615,10 @@ class Deployer:
             work_dir = None
         json_include = cls.load_description(path, work_dir=work_dir)
         if json_include.data["type"] == "machine":
-            return cls.compile_machine(json_include, save_path=save_path, work_dir=work_dir)
+            run_on = None
+            if "params" in json_include.data:
+                if "hostPublicIP" in json_include.data["params"]:
+                    run_on = json_include.data["params"]["hostPublicIP"]
+            return cls.compile_machine(json_include, save_path=save_path, work_dir=work_dir, run_on=run_on)
         elif json_include.data["type"] == "cluster":
             return cls.compile_cluster(json_include, save_path=save_path, work_dir=work_dir)
