@@ -7,7 +7,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parent_dir)
 
 import config
-from util import print_help_line, get_real_path, escape_arg, ensure_json_exists, load_json, save_json
+from util import print_help_line, get_real_path, escape_arg, ensure_json_exists, load_json, save_json, dict_merge
 from json_include import JSONInclude
 
 
@@ -16,7 +16,11 @@ def print_help():
     print_help_line(1, "help", "prints this description")
     print_help_line(1, "get-context-path", "prints the path to current context file")
     print_help_line(1, "get-context", "prints the current context")
-    print_help_line(1, "set-context <path>", "sets the path to the current context file")
+    print_help_line(1, "clear-context", "clears the set of context files")
+    print_help_line(1, "set-context <path>", "sets the path to the current context file " +
+                    "(and removes all other context paths)")
+    print_help_line(1, "add-context <path>", "adds the path to the current set of context files")
+    print_help_line(1, "remove-context <path>", "remove the path from the current set of context files")
     print_help_line(1, "compile <file> [output]", "compile an json machine description file into a shell script")
 
 
@@ -37,6 +41,11 @@ def parse_command(args):
             valid_command = True
             Deployer.load_context()
             print(Deployer.context)
+        elif args[1] == "clear-context":
+            valid_command = True
+            Deployer.load_settings()
+            Deployer.clear_context()
+            Deployer.save_settings()
     elif len(args) == 3:
         if args[1] == "preprocess":
             valid_command = True
@@ -50,6 +59,16 @@ def parse_command(args):
             valid_command = True
             Deployer.load_settings()
             Deployer.set_context(args[2])
+            Deployer.save_settings()
+        elif args[1] == "add-context":
+            valid_command = True
+            Deployer.load_settings()
+            Deployer.add_context(args[2])
+            Deployer.save_settings()
+        elif args[1] == "remove-context":
+            valid_command = True
+            Deployer.load_settings()
+            Deployer.remove_context(args[2])
             Deployer.save_settings()
     elif len(args) == 4:
         if args[1] == "preprocess":
@@ -102,11 +121,41 @@ class Deployer:
         if not path:
             cls.load_settings()
         if "pathToContext" in cls.settings:
-            cls.context = load_json(cls.settings["pathToContext"])
+            if isinstance(cls.settings["pathToContext"], list):
+                cls.context = {}
+                for entry in cls.settings["pathToContext"]:
+                    dict_merge(cls.context, load_json(entry))
+            else:
+                cls.context = load_json(cls.settings["pathToContext"])
 
     @classmethod
     def set_context(cls, path):
-        cls.settings["pathToContext"] = get_real_path(path)
+        cls.settings["pathToContext"] = [get_real_path(path)]
+
+    @classmethod
+    def clear_context(cls):
+        cls.settings["pathToContext"] = []
+
+    @classmethod
+    def remove_context(cls, path):
+        path = get_real_path(path)
+        if "pathToContext" not in cls.settings:
+            return
+        if isinstance(cls.settings["pathToContext"], list):
+            cls.settings["pathToContext"].remove(path)
+        elif cls.settings["pathToContext"] == path:
+            cls.settings["pathToContext"] = []
+
+    @classmethod
+    def add_context(cls, path):
+        path = get_real_path(path)
+        if "pathToContext" not in cls.settings:
+            cls.settings["pathToContext"] = [path]
+        elif isinstance(cls.settings["pathToContext"], list):
+            if path not in cls.settings["pathToContext"]:
+                cls.settings["pathToContext"].append(path)
+        else:
+            cls.settings["pathToContext"] = [cls.settings["pathToContext"], path]
 
     @classmethod
     def preprocess(cls, path, save_path=None):
@@ -152,9 +201,12 @@ class Deployer:
         script = ""
         if "https" in json_include.data:
             for entry in json_include.data["https"]:
-                if "email" in json_include.data["https"][entry]:
-                    script += cls.compile_run_on("daedalus https new-ssl " + entry + " " +
-                                                 json_include.data["https"][entry]["email"], run_on) + "\n"
+                if "domain" not in entry:
+                    continue
+                if "email" not in entry:
+                    continue
+                script += cls.compile_run_on("daedalus https new-ssl " + entry["domain"] + " " + entry["email"],
+                                             run_on) + "\n"
         return cls.lazy_new_line(script)
 
     @classmethod
