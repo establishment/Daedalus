@@ -504,7 +504,7 @@ class Deployer:
         script += cls.compile_modules(json_include, run_on=run_on)
         script += cls.compile_post_install(json_include, run_on=run_on)
         script += cls.compile_hosts(json_include, run_on=run_on)
-        script += cls.compile_ssh_link(json_include, run_on=run_on)
+        script += cls.compile_master_pair(json_include)
         script += cls.compile_autossh(json_include, run_on=run_on)
         script += cls.compile_post_ssh_link(json_include, run_on=run_on)
         if save_path is not None:
